@@ -62,16 +62,9 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
-      {
-        // Immutable, content-hashed build assets.
-        source: "/_next/static/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
+      // Note: /_next/static is already served immutable + max-age=31536000 by
+      // Next.js itself. Setting our own Cache-Control there would override that
+      // and break dev-time revalidation, so we deliberately leave it alone.
       {
         source: "/llms.txt",
         headers: [
