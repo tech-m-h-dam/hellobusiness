@@ -26,6 +26,7 @@ import { PaymentNotesForm } from "./editor/PaymentNotesForm";
 import { DesignPanel } from "./editor/DesignPanel";
 import { InvoicePreview } from "./InvoicePreview";
 import { DownloadButton } from "./DownloadButton";
+import { SaveToAccountPrompt } from "./SaveToAccountPrompt";
 
 type Props = {
   /** Pre-applied template for type-specific landing pages (e.g. the GST page). */
@@ -42,6 +43,8 @@ export function InvoiceEditor({ initialTemplateId, initialSettings }: Props) {
   const update = useInvoiceEditor((s) => s.update);
   const reset = useInvoiceEditor((s) => s.reset);
   const [mobileView, setMobileView] = useState<"edit" | "preview">("edit");
+  // Only ever shown after a successful download, and dismissible for the session.
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
 
   // Restore the in-progress draft, then apply any page-specific defaults.
   useEffect(() => {
@@ -142,10 +145,16 @@ export function InvoiceEditor({ initialTemplateId, initialSettings }: Props) {
             <RotateCcw /> New
           </Button>
           <div className="w-56">
-            <DownloadButton />
+            <DownloadButton onDownloaded={() => setShowSavePrompt(true)} />
           </div>
         </div>
       </div>
+
+      {showSavePrompt && (
+        <div className="mb-4">
+          <SaveToAccountPrompt onDismiss={() => setShowSavePrompt(false)} />
+        </div>
+      )}
 
       {/* Mobile toggle ------------------------------------------------------ */}
       <div data-print="hide" className="mb-3 flex gap-2 lg:hidden">

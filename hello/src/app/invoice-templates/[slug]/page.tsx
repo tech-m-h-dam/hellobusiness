@@ -6,7 +6,7 @@ import { InvoiceEditor } from "@/components/invoice/InvoiceEditor";
 import { TemplateThumb } from "@/components/invoice/TemplateThumb";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { FaqSection } from "@/components/seo/FaqSection";
-import { TEMPLATES, getTemplate } from "@/lib/invoice/templates";
+import { TEMPLATES } from "@/lib/invoice/templates";
 import { generateMetadata as buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamicParams = false;
