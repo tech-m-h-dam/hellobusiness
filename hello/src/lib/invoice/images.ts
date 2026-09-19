@@ -8,7 +8,7 @@
  * what the user dragged in. See spec sections 7, 40.
  */
 import { makeId } from "./defaults";
-import { IMAGE_UPLOAD_LIMITS } from "./validation";
+import { IMAGE_UPLOAD_LIMITS } from "./limits";
 import type { ItemImage } from "./types";
 
 export type ImageValidationError =

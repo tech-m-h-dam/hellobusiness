@@ -219,16 +219,10 @@ export const invoiceSchema = z.object({
 
 export type InvoiceInput = z.infer<typeof invoiceSchema>;
 
-/** Image upload constraints, enforced client-side before an image ever enters state. */
-export const IMAGE_UPLOAD_LIMITS = {
-  maxBytesOriginal: 15 * 1024 * 1024, // 15MB raw upload cap
-  maxDimension: 4000, // reject absurd source dimensions before decoding cost
-  acceptedMime: ["image/jpeg", "image/png", "image/webp"] as const,
-  // Targets after client-side processing (lib/invoice/images.ts):
-  processedMaxDimension: 1600,
-  processedMaxBytes: 600 * 1024,
-  thumbMaxDimension: 240,
-};
+/** Image upload constraints — defined in ./limits so browser code can read them
+ * without pulling Zod into the client bundle. Re-exported here for callers that
+ * already import from this module. */
+export { IMAGE_UPLOAD_LIMITS } from "./limits";
 
 export function validateInvoice(data: unknown) {
   return invoiceSchema.safeParse(data);
