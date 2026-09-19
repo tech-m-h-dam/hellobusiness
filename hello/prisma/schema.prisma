@@ -1,0 +1,163 @@
+// Minimal schema (spec section 42/64): the database only backs optional,
+// explicitly-requested persistence (auth, saved invoices/templates, admin
+// content). Anonymous invoice creation never touches this file.
+//
+// SQLite for local dev. To move to Postgres for production: change
+// `provider` below to "postgresql", point DATABASE_URL at a managed
+// instance, and run `prisma migrate deploy` — no application code changes.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  // Prisma 7: the connection URL lives in prisma.config.ts (CLI/migrations)
+  // and in the driver adapter (runtime, see src/lib/db/client.ts), not here.
+  // Swapping to Postgres for production is a 2-file change: this provider
+  // string, and the adapter constructed in src/lib/db/client.ts.
+  provider = "sqlite"
+}
+
+/* -------------------------------------------------------------------------- */
+/* Auth (NextAuth / Auth.js — Google OAuth only, account is optional)         */
+/* -------------------------------------------------------------------------- */
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  provider      String    @default("google")
+  status        String    @default("active") // active | suspended
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLogin     DateTime?
+
+  accounts       Account[]
+  sessions       Session[]
+  savedInvoices  SavedInvoice[]
+  savedTemplates SavedTemplate[]
+  isAdmin        Boolean         @default(false)
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+/* -------------------------------------------------------------------------- */
+/* Optional saved data — only written when the user clicks "Save to account"  */
+/* -------------------------------------------------------------------------- */
+
+model SavedInvoice {
+  id            String   @id @default(cuid())
+  userId        String
+  invoiceNumber String
+  title         String?
+  templateId    String
+  /** The full normalised Invoice object (see lib/invoice/types.ts), as JSON. */
+  dataJson      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+}
+
+model SavedTemplate {
+  id           String   @id @default(cuid())
+  userId       String
+  name         String
+  templateJson String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+}
+
+/* -------------------------------------------------------------------------- */
+/* Public content (blog + CMS-managed tool/landing pages)                     */
+/* -------------------------------------------------------------------------- */
+
+model BlogPost {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  excerpt         String?
+  content         String // rendered HTML/MDX body
+  featuredImage   String?
+  categoryId      String?
+  seoTitle        String?
+  seoDescription  String?
+  canonical       String?
+  status          String    @default("draft") // draft | scheduled | published
+  publishedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  category Category? @relation(fields: [categoryId], references: [id])
+
+  @@index([status, publishedAt])
+}
+
+model Category {
+  id    String @id @default(cuid())
+  name  String
+  slug  String @unique
+
+  posts BlogPost[]
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  url       String
+  alt       String?
+  filename  String
+  createdAt DateTime @default(now())
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  createdAt DateTime @default(now())
+  handled   Boolean  @default(false)
+}
