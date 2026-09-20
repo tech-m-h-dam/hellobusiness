@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { InvoiceEditor } from "@/components/invoice/InvoiceEditor";
+import { googleConfigured } from "@/lib/auth/status";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { FaqSection } from "@/components/seo/FaqSection";
 import { generateMetadata as buildMetadata } from "@/lib/seo/metadata";
@@ -42,7 +43,7 @@ export default function PrintableInvoicePage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 pb-10">
-        <InvoiceEditor />
+        <InvoiceEditor authAvailable={googleConfigured} />
       </section>
 
       <section className="mx-auto max-w-3xl px-4 py-12">

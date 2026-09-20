@@ -19,6 +19,8 @@ export type AnalyticsEvent =
   | "invoice_completed"
   | "pdf_downloaded"
   | "pdf_failed"
+  | "docx_downloaded"
+  | "docx_failed"
   | "invoice_printed"
   | "template_selected"
   | "template_created"

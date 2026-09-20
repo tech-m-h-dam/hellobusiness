@@ -196,8 +196,12 @@ export const invoiceSettingsSchema = z.object({
   dateFormat: z.enum(["yyyy-MM-dd", "dd/MM/yyyy", "MM/dd/yyyy", "d MMM yyyy"]),
 });
 
+/** Sparse label overrides; unknown keys are stripped rather than rejected. */
+const labelsSchema = z.record(z.string(), z.string().max(60)).optional();
+
 export const invoiceSchema = z.object({
   id: z.string(),
+  labels: labelsSchema,
   business: businessDetailsSchema,
   customer: customerDetailsSchema,
   invoice: invoiceMetaSchema,

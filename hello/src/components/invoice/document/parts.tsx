@@ -20,6 +20,7 @@ import type {
 } from "@/lib/invoice/types";
 import { formatMoney } from "@/lib/invoice/money";
 import { formatInvoiceDate } from "@/lib/invoice/format";
+import { type LabelKey, labelFor } from "@/lib/invoice/labels";
 
 export type DocProps = {
   invoice: Invoice;
@@ -69,12 +70,13 @@ export function BusinessIdentity({ invoice, tone = "dark" }: DocProps & { tone?:
 
 export function InvoiceMetaBlock({ invoice, align = "right" }: DocProps & { align?: "left" | "right" }) {
   const m = invoice.invoice;
+  const L = (key: LabelKey) => labelFor(invoice, key);
   const rows: [string, string | undefined][] = [
-    ["Invoice #", m.number],
-    ["Date", formatInvoiceDate(m.date, invoice.settings.dateFormat)],
-    ...(invoice.settings.showDueDate ? ([["Due Date", formatInvoiceDate(m.dueDate, invoice.settings.dateFormat)]] as [string, string][]) : []),
-    ...(m.purchaseOrder ? ([["PO #", m.purchaseOrder]] as [string, string][]) : []),
-    ...(m.reference ? ([["Reference", m.reference]] as [string, string][]) : []),
+    [L("invoiceNumber"), m.number],
+    [L("invoiceDate"), formatInvoiceDate(m.date, invoice.settings.dateFormat)],
+    ...(invoice.settings.showDueDate ? ([[L("dueDate"), formatInvoiceDate(m.dueDate, invoice.settings.dateFormat)]] as [string, string][]) : []),
+    ...(m.purchaseOrder ? ([[L("poNumber"), m.purchaseOrder]] as [string, string][]) : []),
+    ...(m.reference ? ([[L("reference"), m.reference]] as [string, string][]) : []),
   ];
   return (
     <div className={align === "right" ? "text-right" : "text-left"}>
@@ -100,7 +102,7 @@ export function PartiesBlock({ invoice }: DocProps) {
   return (
     <div className="grid grid-cols-2 gap-6">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">Bill To</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">{labelFor(invoice, "billTo")}</p>
         <p className="mt-1 text-[13px] font-semibold text-ink-900">{c.name || "Customer name"}</p>
         <div className="mt-0.5 text-[11.5px] leading-snug text-ink-600">
           {c.company && <p>{c.company}</p>}
@@ -113,7 +115,7 @@ export function PartiesBlock({ invoice }: DocProps) {
       </div>
       {invoice.settings.showShipping && c.shipToDifferentAddress && c.shippingAddress && (
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">Ship To</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">{labelFor(invoice, "shipTo")}</p>
           <p className="mt-1 whitespace-pre-line text-[11.5px] leading-snug text-ink-600">
             {c.shippingAddress}
           </p>
@@ -169,20 +171,6 @@ export function ItemImages({ images, settings }: { images: ItemImage[]; settings
 /* Items table                                                                 */
 /* -------------------------------------------------------------------------- */
 
-const COLUMN_LABELS: Record<string, string> = {
-  index: "#",
-  image: "",
-  name: "Item",
-  sku: "SKU",
-  hsn: "HSN/SAC",
-  quantity: "Qty",
-  unit: "Unit",
-  rate: "Rate",
-  discount: "Discount",
-  tax: "Tax",
-  amount: "Amount",
-};
-
 export function ItemsTable({ invoice, totals }: DocProps) {
   const { settings } = invoice;
   const show = settings.showColumn;
@@ -217,7 +205,7 @@ export function ItemsTable({ invoice, totals }: DocProps) {
               className={`px-2.5 py-2 text-left font-semibold uppercase tracking-wide ${isRightAligned(c) ? "text-right" : ""}`}
               style={{ fontSize: Math.max(8, settings.tableFontSize - 1.5) }}
             >
-              {COLUMN_LABELS[c]}
+              {labelFor(invoice, c as LabelKey)}
             </th>
           ))}
         </tr>
@@ -254,9 +242,14 @@ export function ItemsTable({ invoice, totals }: DocProps) {
                 if (c === "quantity")
                   return (
                     <td key={c} className="px-2.5 py-2.5 text-right text-ink-700">
-                      {item.quantity} {item.unit}
+                      {/* The unit is appended here only when it has no column of
+                          its own, otherwise it would be printed twice. */}
+                      {item.quantity}
+                      {!show.unit && item.unit ? ` ${item.unit}` : ""}
                     </td>
                   );
+                if (c === "unit")
+                  return <td key={c} className="px-2.5 py-2.5 text-ink-600">{item.unit}</td>;
                 if (c === "rate")
                   return <td key={c} className="px-2.5 py-2.5 text-right text-ink-700">{money(invoice, item.rate)}</td>;
                 if (c === "discount")
@@ -292,24 +285,25 @@ export function ItemsTable({ invoice, totals }: DocProps) {
 /* -------------------------------------------------------------------------- */
 
 export function TotalsBlock({ invoice, totals }: DocProps) {
+  const L = (key: LabelKey) => labelFor(invoice, key);
   const rows: [string, string, boolean?][] = [
-    ["Subtotal", money(invoice, totals.subtotal)],
+    [L("subtotal"), money(invoice, totals.subtotal)],
   ];
-  if (totals.itemDiscountTotal) rows.push(["Item discounts", `-${money(invoice, totals.itemDiscountTotal)}`]);
-  if (totals.invoiceDiscountTotal) rows.push(["Discount", `-${money(invoice, totals.invoiceDiscountTotal)}`]);
+  if (totals.itemDiscountTotal) rows.push([L("itemDiscounts"), `-${money(invoice, totals.itemDiscountTotal)}`]);
+  if (totals.invoiceDiscountTotal) rows.push([L("discount"), `-${money(invoice, totals.invoiceDiscountTotal)}`]);
   if (invoice.settings.showTaxSummary) {
     for (const t of totals.taxSummary) {
       rows.push([`${t.name}${t.rate ? ` (${t.rate}%)` : ""}`, money(invoice, t.amount)]);
     }
   } else if (totals.taxTotal) {
-    rows.push(["Tax", money(invoice, totals.taxTotal)]);
+    rows.push([L("tax"), money(invoice, totals.taxTotal)]);
   }
   if (totals.chargeTotal) {
     for (const charge of invoice.charges) {
       rows.push([charge.label || "Charge", money(invoice, charge.value)]);
     }
   }
-  if (totals.rounding) rows.push(["Rounding", money(invoice, totals.rounding)]);
+  if (totals.rounding) rows.push([L("rounding"), money(invoice, totals.rounding)]);
 
   return (
     <div className="ml-auto w-full max-w-xs">
@@ -325,11 +319,13 @@ export function TotalsBlock({ invoice, totals }: DocProps) {
         className="mt-3 flex justify-between rounded-md px-3 py-2.5 text-[15px] font-bold text-white"
         style={{ backgroundColor: "var(--doc-primary)" }}
       >
-        <span>Total</span>
+        <span>{L("total")}</span>
         <span>{money(invoice, totals.total)}</span>
       </div>
       {totals.amountInWords && (
-        <p className="mt-2 text-[10.5px] italic text-ink-500">Amount in words: {totals.amountInWords}</p>
+        <p className="mt-2 text-[10.5px] italic text-ink-500">
+          {L("amountInWords")}: {totals.amountInWords}
+        </p>
       )}
     </div>
   );
@@ -346,7 +342,7 @@ export function PaymentBlock({ invoice }: DocProps) {
   if (!hasBank && !p.upiId && !p.paymentLink && !p.instructions) return null;
   return (
     <div className="text-[11px] text-ink-600">
-      <p className="font-semibold uppercase tracking-wide text-ink-500">Payment Details</p>
+      <p className="font-semibold uppercase tracking-wide text-ink-500">{labelFor(invoice, "paymentDetails")}</p>
       <div className="mt-1 space-y-0.5">
         {hasBank && (
           <>
@@ -373,13 +369,13 @@ export function NotesTermsBlock({ invoice }: DocProps) {
     <div className="space-y-3 text-[11px] text-ink-600">
       {invoice.settings.showNotes && invoice.notes && (
         <div>
-          <p className="font-semibold uppercase tracking-wide text-ink-500">Notes</p>
+          <p className="font-semibold uppercase tracking-wide text-ink-500">{labelFor(invoice, "notes")}</p>
           <p className="mt-1 whitespace-pre-line">{invoice.notes}</p>
         </div>
       )}
       {invoice.settings.showTerms && invoice.terms && (
         <div>
-          <p className="font-semibold uppercase tracking-wide text-ink-500">Terms &amp; Conditions</p>
+          <p className="font-semibold uppercase tracking-wide text-ink-500">{labelFor(invoice, "terms")}</p>
           <p className="mt-1 whitespace-pre-line">{invoice.terms}</p>
         </div>
       )}
@@ -400,7 +396,7 @@ export function SignatureBlock({ invoice }: DocProps) {
         <div className="h-12 w-40 border-b border-ink-300" />
       )}
       <p className="mt-1 text-[11px] font-medium text-ink-800">{s.name}</p>
-      <p className="text-[10px] text-ink-500">{s.label || "Authorized Signature"}</p>
+      <p className="text-[10px] text-ink-500">{s.label || labelFor(invoice, "authorizedSignature")}</p>
     </div>
   );
 }

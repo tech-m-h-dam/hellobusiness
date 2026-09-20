@@ -22,7 +22,14 @@ export type PageMetadataInput = {
   modifiedTime?: string;
 };
 
-const DEFAULT_OG_IMAGE = "/og-default.png";
+/**
+ * No default image constant on purpose.
+ *
+ * `app/opengraph-image.tsx` generates the site-wide OG image, and Next.js
+ * injects it automatically into any page that does not declare its own. If we
+ * set a default path here it would *override* that generated image on every
+ * page — which is how you end up shipping a site-wide og:image 404.
+ */
 
 /**
  * Build a Next.js `Metadata` object for one page. Titles are suffixed with the
@@ -39,7 +46,7 @@ export function generateMetadata({
   modifiedTime,
 }: PageMetadataInput): Metadata {
   const canonical = absoluteUrl(path);
-  const ogImage = absoluteUrl(image ?? DEFAULT_OG_IMAGE);
+  const ogImage = image ? absoluteUrl(image) : undefined;
 
   return {
     title,
@@ -54,7 +61,9 @@ export function generateMetadata({
       description,
       url: canonical,
       siteName: SITE_NAME,
-      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+      // Omitted when no page-specific image is given, so Next's generated
+      // app/opengraph-image.tsx is used instead of being overridden.
+      ...(ogImage ? { images: [{ url: ogImage, width: 1200, height: 630, alt: title }] } : {}),
       type,
       ...(type === "article" && publishedTime ? { publishedTime } : {}),
       ...(type === "article" && modifiedTime ? { modifiedTime } : {}),
@@ -63,7 +72,7 @@ export function generateMetadata({
       card: "summary_large_image",
       title,
       description,
-      images: [ogImage],
+      ...(ogImage ? { images: [ogImage] } : {}),
     },
   };
 }

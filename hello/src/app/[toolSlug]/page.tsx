@@ -16,6 +16,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ArrowRight, Check } from "lucide-react";
 import { InvoiceEditor } from "@/components/invoice/InvoiceEditor";
+import { googleConfigured } from "@/lib/auth/status";
 import { FaqSection } from "@/components/seo/FaqSection";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { AdSlot } from "@/components/ads/AdSlot";
@@ -66,7 +67,11 @@ export default async function InvoiceTypePage(props: PageProps<"/[toolSlug]">) {
 
       {/* The tool, pre-configured for this invoice type --------------------- */}
       <section className="mx-auto max-w-7xl px-4 pb-10">
-        <InvoiceEditor initialTemplateId={content.templateId} initialSettings={content.settings} />
+        <InvoiceEditor
+          initialTemplateId={content.templateId}
+          initialSettings={content.settings}
+          authAvailable={googleConfigured}
+        />
       </section>
 
       <div className="mx-auto max-w-5xl px-4">

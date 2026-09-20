@@ -139,6 +139,9 @@ export function createInvoice(overrides: Partial<Invoice> = {}): Invoice {
   const now = new Date().toISOString();
   return {
     id: makeId("inv"),
+    // No label overrides by default — DEFAULT_LABELS applies until the user
+    // renames something (see lib/invoice/labels.ts).
+    labels: {},
     business: { name: "" },
     customer: { name: "" },
     invoice: {

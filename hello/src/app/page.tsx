@@ -10,6 +10,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Check, FileDown, Images, Lock, Palette, Zap } from "lucide-react";
 import { InvoiceEditor } from "@/components/invoice/InvoiceEditor";
+import { googleConfigured } from "@/lib/auth/status";
 import { FaqSection, type Faq } from "@/components/seo/FaqSection";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { TEMPLATES } from "@/lib/invoice/templates";
@@ -127,7 +128,7 @@ export default function HomePage() {
 
       {/* The tool --------------------------------------------------------- */}
       <section id="invoice-generator" className="mx-auto max-w-7xl scroll-mt-20 px-4 py-10">
-        <InvoiceEditor />
+        <InvoiceEditor authAvailable={googleConfigured} />
       </section>
 
       <div className="mx-auto max-w-5xl px-4">

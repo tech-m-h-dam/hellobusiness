@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useInvoiceEditor } from "@/stores/invoice-editor";
+import { LabelsPanel } from "./LabelsPanel";
 import { TEMPLATES, applyTemplatePreset } from "@/lib/invoice/templates";
 import { track } from "@/lib/analytics/track";
 import type { ColumnKey, InvoiceSettings } from "@/lib/invoice/types";
@@ -226,6 +227,12 @@ export function DesignPanel() {
             </SelectContent>
           </Select>
         </Field>
+      </section>
+
+      {/* Labels ------------------------------------------------------------ */}
+      <section>
+        <h3 className="mb-2 text-[13px] font-semibold text-ink-800">Labels &amp; wording</h3>
+        <LabelsPanel />
       </section>
 
       {/* Visibility -------------------------------------------------------- */}

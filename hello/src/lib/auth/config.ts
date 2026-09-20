@@ -15,9 +15,8 @@ import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db/client";
 
-export const googleConfigured = Boolean(
-  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
-);
+export { googleConfigured } from "./status";
+import { googleConfigured } from "./status";
 
 /** Emails allowed into /admin, from ADMIN_EMAILS (comma-separated). */
 function adminEmails(): string[] {

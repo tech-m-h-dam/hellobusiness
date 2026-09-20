@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
 import { InvoiceEditor } from "@/components/invoice/InvoiceEditor";
+import { googleConfigured } from "@/lib/auth/status";
 import { TemplateThumb } from "@/components/invoice/TemplateThumb";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { FaqSection } from "@/components/seo/FaqSection";
@@ -89,7 +90,7 @@ export default async function TemplatePage(props: PageProps<"/invoice-templates/
       </section>
 
       <section id="use-template" className="mx-auto max-w-7xl scroll-mt-20 px-4 pb-10">
-        <InvoiceEditor initialTemplateId={template.id} />
+        <InvoiceEditor initialTemplateId={template.id} authAvailable={googleConfigured} />
       </section>
 
       <section className="mx-auto max-w-3xl px-4 py-12">

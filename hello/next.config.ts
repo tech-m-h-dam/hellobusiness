@@ -11,14 +11,22 @@ import type { NextConfig } from "next";
  */
 const csp = [
   "default-src 'self'",
-  // next/script and the Next.js runtime need inline+eval in dev; eval is dropped in prod.
+  // `'wasm-unsafe-eval'` is required in production: the client-side PDF engine
+  // (@react-pdf/renderer, via its font/layout engine) compiles a WebAssembly
+  // module, and without this directive WebAssembly.instantiate() is blocked and
+  // every PDF download fails. It permits WASM compilation *only* — unlike
+  // `'unsafe-eval'`, it does not re-enable eval() of JavaScript strings, so the
+  // XSS protection the CSP exists for stays intact. Browsers that don't support
+  // the directive simply fall back to the print-to-PDF path.
   process.env.NODE_ENV === "production"
-    ? "script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://www.googletagmanager.com"
-    : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    ? "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com"
+    : "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://www.google-analytics.com",
+  // `data:` is needed because the PDF engine loads its WebAssembly module from
+  // an inlined data: URL; without it the fetch is blocked and logs an error.
+  "connect-src 'self' data: blob: https://www.google-analytics.com",
   "frame-src 'self' https://googleads.g.doubleclick.net",
   "object-src 'none'",
   "base-uri 'self'",

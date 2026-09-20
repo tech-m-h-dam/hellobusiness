@@ -273,6 +273,12 @@ export type InvoiceSettings = {
 
 export type Invoice = {
   id: string;
+  /**
+   * Sparse overrides for the fixed wording printed on the document ("Bill To",
+   * column headers, "Total", …). See lib/invoice/labels.ts. Only the labels the
+   * user actually changed are stored.
+   */
+  labels?: import("./labels").InvoiceLabels;
   business: BusinessDetails;
   customer: CustomerDetails;
   invoice: InvoiceMeta;

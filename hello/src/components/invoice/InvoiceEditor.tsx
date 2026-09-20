@@ -33,9 +33,15 @@ type Props = {
   initialTemplateId?: string;
   /** Column/section defaults for a specific invoice type, merged on first mount. */
   initialSettings?: Partial<import("@/lib/invoice/types").InvoiceSettings>;
+  /**
+   * Whether optional Google sign-in is configured on this deployment. Passed
+   * down from the server so the post-download save prompt is never rendered
+   * (and never calls /api/auth/session) on a deployment without OAuth.
+   */
+  authAvailable?: boolean;
 };
 
-export function InvoiceEditor({ initialTemplateId, initialSettings }: Props) {
+export function InvoiceEditor({ initialTemplateId, initialSettings, authAvailable = false }: Props) {
   const hydrated = useInvoiceEditor((s) => s.hydrated);
   const saving = useInvoiceEditor((s) => s.saving);
   const lastSavedAt = useInvoiceEditor((s) => s.lastSavedAt);
@@ -145,12 +151,12 @@ export function InvoiceEditor({ initialTemplateId, initialSettings }: Props) {
             <RotateCcw /> New
           </Button>
           <div className="w-56">
-            <DownloadButton onDownloaded={() => setShowSavePrompt(true)} />
+            <DownloadButton onDownloaded={() => setShowSavePrompt(authAvailable)} />
           </div>
         </div>
       </div>
 
-      {showSavePrompt && (
+      {showSavePrompt && authAvailable && (
         <div className="mb-4">
           <SaveToAccountPrompt onDismiss={() => setShowSavePrompt(false)} />
         </div>

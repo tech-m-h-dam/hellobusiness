@@ -12,6 +12,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { InvoiceEditor } from "@/components/invoice/InvoiceEditor";
+import { googleConfigured } from "@/lib/auth/status";
 import { Breadcrumbs } from "@/components/seo/Breadcrumbs";
 import { FaqSection } from "@/components/seo/FaqSection";
 import { AdSlot } from "@/components/ads/AdSlot";
@@ -55,7 +56,7 @@ export default function InvoiceGeneratorPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 pb-10">
-        <InvoiceEditor />
+        <InvoiceEditor authAvailable={googleConfigured} />
       </section>
 
       <div className="mx-auto max-w-5xl px-4">

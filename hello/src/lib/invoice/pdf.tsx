@@ -30,6 +30,7 @@ import type { ComputedTotals, Invoice, InvoiceItem } from "./types";
 import { formatMoney } from "./money";
 import { formatInvoiceDate } from "./format";
 import { getTemplate } from "./templates";
+import { type LabelKey, labelFor } from "./labels";
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                     */
@@ -60,20 +61,6 @@ const COLUMN_FLEX: Record<string, number> = {
   discount: 1,
   tax: 1,
   amount: 1.3,
-};
-
-const COLUMN_LABELS: Record<string, string> = {
-  index: "#",
-  image: "",
-  name: "Item",
-  sku: "SKU",
-  hsn: "HSN/SAC",
-  quantity: "Qty",
-  unit: "Unit",
-  rate: "Rate",
-  discount: "Disc.",
-  tax: "Tax",
-  amount: "Amount",
 };
 
 const RIGHT_ALIGNED = new Set(["quantity", "rate", "discount", "tax", "amount"]);
@@ -231,12 +218,13 @@ function BusinessBlock({
 
 function MetaBlock({ invoice, styles, align = "right" }: { invoice: Invoice; styles: Styles; align?: "left" | "right" }) {
   const m = invoice.invoice;
+  const L = (key: LabelKey) => labelFor(invoice, key);
   const rows: [string, string | undefined][] = [
-    ["Invoice #", m.number],
-    ["Date", formatInvoiceDate(m.date, invoice.settings.dateFormat)],
-    invoice.settings.showDueDate ? ["Due Date", formatInvoiceDate(m.dueDate, invoice.settings.dateFormat)] : ["", undefined],
-    m.purchaseOrder ? ["PO #", m.purchaseOrder] : ["", undefined],
-    m.reference ? ["Reference", m.reference] : ["", undefined],
+    [L("invoiceNumber"), m.number],
+    [L("invoiceDate"), formatInvoiceDate(m.date, invoice.settings.dateFormat)],
+    invoice.settings.showDueDate ? [L("dueDate"), formatInvoiceDate(m.dueDate, invoice.settings.dateFormat)] : ["", undefined],
+    m.purchaseOrder ? [L("poNumber"), m.purchaseOrder] : ["", undefined],
+    m.reference ? [L("reference"), m.reference] : ["", undefined],
   ];
   return (
     <View style={{ alignItems: align === "right" ? "flex-end" : "flex-start" }}>
@@ -260,7 +248,7 @@ function PartiesBlock({ invoice, styles }: { invoice: Invoice; styles: Styles })
   return (
     <View style={{ flexDirection: "row", gap: 24, marginTop: 12 }}>
       <View style={{ flex: 1 }}>
-        <Text style={styles.sectionLabel}>Bill To</Text>
+        <Text style={styles.sectionLabel}>{labelFor(invoice, "billTo")}</Text>
         <Text style={{ fontWeight: 700 }}>{c.name || "Customer name"}</Text>
         {[c.company, c.billingAddress, c.email, c.phone, c.gstin ? `GSTIN: ${c.gstin}` : undefined]
           .filter(Boolean)
@@ -272,7 +260,7 @@ function PartiesBlock({ invoice, styles }: { invoice: Invoice; styles: Styles })
       </View>
       {invoice.settings.showShipping && c.shipToDifferentAddress && c.shippingAddress ? (
         <View style={{ flex: 1 }}>
-          <Text style={styles.sectionLabel}>Ship To</Text>
+          <Text style={styles.sectionLabel}>{labelFor(invoice, "shipTo")}</Text>
           <Text style={[styles.small, styles.muted]}>{c.shippingAddress}</Text>
         </View>
       ) : null}
@@ -325,7 +313,7 @@ function ItemsTablePdf({ invoice, totals, styles }: { invoice: Invoice; totals: 
               { flex: COLUMN_FLEX[c], textAlign: RIGHT_ALIGNED.has(c) ? "right" : "left" },
             ]}
           >
-            {COLUMN_LABELS[c]}
+            {labelFor(invoice, c as LabelKey)}
           </Text>
         ))}
       </View>
@@ -401,20 +389,21 @@ function ItemsTablePdf({ invoice, totals, styles }: { invoice: Invoice; totals: 
 }
 
 function TotalsPdf({ invoice, totals, styles }: { invoice: Invoice; totals: ComputedTotals; styles: Styles }) {
-  const rows: [string, string][] = [["Subtotal", money(invoice, totals.subtotal)]];
-  if (totals.itemDiscountTotal) rows.push(["Item discounts", `-${money(invoice, totals.itemDiscountTotal)}`]);
-  if (totals.invoiceDiscountTotal) rows.push(["Discount", `-${money(invoice, totals.invoiceDiscountTotal)}`]);
+  const L = (key: LabelKey) => labelFor(invoice, key);
+  const rows: [string, string][] = [[L("subtotal"), money(invoice, totals.subtotal)]];
+  if (totals.itemDiscountTotal) rows.push([L("itemDiscounts"), `-${money(invoice, totals.itemDiscountTotal)}`]);
+  if (totals.invoiceDiscountTotal) rows.push([L("discount"), `-${money(invoice, totals.invoiceDiscountTotal)}`]);
   if (invoice.settings.showTaxSummary) {
     for (const t of totals.taxSummary) {
       rows.push([`${t.name}${t.rate ? ` (${t.rate}%)` : ""}`, money(invoice, t.amount)]);
     }
   } else if (totals.taxTotal) {
-    rows.push(["Tax", money(invoice, totals.taxTotal)]);
+    rows.push([L("tax"), money(invoice, totals.taxTotal)]);
   }
   for (const charge of invoice.charges) {
     if (charge.value) rows.push([charge.label || "Charge", money(invoice, charge.value)]);
   }
-  if (totals.rounding) rows.push(["Rounding", money(invoice, totals.rounding)]);
+  if (totals.rounding) rows.push([L("rounding"), money(invoice, totals.rounding)]);
 
   return (
     // Keep the totals block whole — splitting it across pages looks broken.
@@ -426,12 +415,12 @@ function TotalsPdf({ invoice, totals, styles }: { invoice: Invoice; totals: Comp
         </View>
       ))}
       <View style={styles.grandTotal}>
-        <Text style={{ fontWeight: 700 }}>Total</Text>
+        <Text style={{ fontWeight: 700 }}>{L("total")}</Text>
         <Text style={{ fontWeight: 700 }}>{money(invoice, totals.total)}</Text>
       </View>
       {totals.amountInWords ? (
         <Text style={[styles.small, styles.muted, { marginTop: 4, fontStyle: "italic" }]}>
-          Amount in words: {totals.amountInWords}
+          {L("amountInWords")}: {totals.amountInWords}
         </Text>
       ) : null}
     </View>
@@ -458,19 +447,19 @@ function FooterAreaPdf({
       <View style={{ flex: 1, gap: 10 }}>
         {s.showNotes && invoice.notes ? (
           <View>
-            <Text style={styles.sectionLabel}>Notes</Text>
+            <Text style={styles.sectionLabel}>{labelFor(invoice, "notes")}</Text>
             <Text style={[styles.small, styles.muted]}>{invoice.notes}</Text>
           </View>
         ) : null}
         {s.showTerms && invoice.terms ? (
           <View>
-            <Text style={styles.sectionLabel}>Terms &amp; Conditions</Text>
+            <Text style={styles.sectionLabel}>{labelFor(invoice, "terms")}</Text>
             <Text style={[styles.small, styles.muted]}>{invoice.terms}</Text>
           </View>
         ) : null}
         {showPayment ? (
           <View>
-            <Text style={styles.sectionLabel}>Payment Details</Text>
+            <Text style={styles.sectionLabel}>{labelFor(invoice, "paymentDetails")}</Text>
             {[
               s.showBankDetails && p.bankName ? `Bank: ${p.bankName}` : undefined,
               s.showBankDetails && p.accountName ? `Account name: ${p.accountName}` : undefined,
@@ -510,7 +499,9 @@ function FooterAreaPdf({
               <View style={{ width: 130, borderBottomWidth: 0.5, borderBottomColor: "#94a3b8", height: 28 }} />
             )}
             {invoice.signature.name ? <Text style={styles.small}>{invoice.signature.name}</Text> : null}
-            <Text style={[styles.small, styles.muted]}>{invoice.signature.label || "Authorized Signature"}</Text>
+            <Text style={[styles.small, styles.muted]}>
+              {invoice.signature.label || labelFor(invoice, "authorizedSignature")}
+            </Text>
           </View>
         ) : null}
       </View>
