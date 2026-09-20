@@ -7,25 +7,27 @@
  * NextAuth. See lib/seo and the route-level `revalidate`/`fetchCache`
  * settings for how public pages stay off this path.
  *
- * Provider swap: change `provider` in prisma/schema.prisma to "postgresql"
- * and replace the adapter below with `@prisma/adapter-pg` — nothing else in
- * the app imports PrismaClient directly, so no other file changes.
+ * Postgres via `@prisma/adapter-pg`. Nothing else in the app imports
+ * PrismaClient directly, so the provider lives in exactly two places: the
+ * `datasource` block in prisma/schema.prisma and the adapter below.
  */
 import "server-only";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createClient() {
-  const adapter = new PrismaBetterSqlite3({
-    url: process.env.DATABASE_URL ?? "file:./dev.db",
-  });
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("DATABASE_URL is not set — the Postgres adapter has nothing to connect to.");
+  }
+  const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({ adapter });
 }
 
-// Reuse the client across hot-reloads in dev so we don't exhaust SQLite file
-// handles / Postgres connections on every module reload.
+// Reuse the client across hot-reloads in dev so we don't exhaust the
+// Postgres connection pool on every module reload.
 export const prisma = globalForPrisma.prisma ?? createClient();
 
 if (process.env.NODE_ENV !== "production") {

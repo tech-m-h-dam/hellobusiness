@@ -2,9 +2,9 @@
 // explicitly-requested persistence (auth, saved invoices/templates, admin
 // content). Anonymous invoice creation never touches this file.
 //
-// SQLite for local dev. To move to Postgres for production: change
-// `provider` below to "postgresql", point DATABASE_URL at a managed
-// instance, and run `prisma migrate deploy` — no application code changes.
+// Postgres (Prisma Postgres, db.prisma.io). DATABASE_URL carries the
+// connection string for both the CLI (prisma.config.ts) and the runtime
+// adapter (src/lib/db/client.ts); nothing else in the app needs to know.
 
 generator client {
   provider = "prisma-client-js"
@@ -14,9 +14,7 @@ generator client {
 datasource db {
   // Prisma 7: the connection URL lives in prisma.config.ts (CLI/migrations)
   // and in the driver adapter (runtime, see src/lib/db/client.ts), not here.
-  // Swapping to Postgres for production is a 2-file change: this provider
-  // string, and the adapter constructed in src/lib/db/client.ts.
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 /* -------------------------------------------------------------------------- */

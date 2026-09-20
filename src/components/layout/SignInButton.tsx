@@ -1,8 +1,8 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { LogIn } from "lucide-react";
 import { Button, type ButtonProps } from "@/components/ui/button";
+import { GoogleIcon } from "@/components/ui/google-icon";
 
 /** Google sign-in trigger. Rendered only where auth is actually configured. */
 export function SignInButton({
@@ -21,7 +21,7 @@ export function SignInButton({
       size={size}
       onClick={() => signIn("google", { callbackUrl })}
     >
-      <LogIn /> {children}
+      <GoogleIcon /> {children}
     </Button>
   );
 }
