@@ -1,11 +1,4 @@
-/**
- * Reserved ad placement.
- *
- * Renders a fixed-size container whether or not an ad ever fills it, so
- * inserting ads later cannot shift layout (protects CLS — spec section 46).
- * With no AdSense client configured this renders nothing at all, keeping the
- * DOM clean in development and for self-hosted deployments.
- */
+
 export function AdSlot({
   slot,
   format = "horizontal",
