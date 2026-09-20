@@ -39,8 +39,8 @@ export const authConfig: NextAuthConfig = {
   providers: googleConfigured
     ? [
         Google({
-          clientId: process.env.GOOGLE_CLIENT_ID,
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          clientSecret: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET,
           // Only what we need to identify the user — no Drive, no contacts.
           authorization: { params: { scope: "openid email profile" } },
         }),
