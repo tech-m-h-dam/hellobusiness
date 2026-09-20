@@ -1,16 +1,19 @@
 import Link from "next/link";
-import { FileText } from "lucide-react";
 import { SITE_NAME } from "@/lib/seo/site";
 import { HeaderNav } from "./HeaderNav";
-import { auth } from "@/lib/auth/config";
-import { googleConfigured } from "@/lib/auth/status";
 import Image from "next/image";
 
-/** Server component; only the nav/language controls hydrate. */
-export async function SiteHeader() {
-  // Only consult the session when auth is actually configured, so deployments
-  // without OAuth keep every page statically renderable.
-  const session = googleConfigured ? await auth() : null;
+/**
+ * Server component; only the nav/language controls hydrate.
+ *
+ * The session is read once in the root layout (it also gates Google One
+ * Tap) and passed down here, rather than each calling `auth()` itself.
+ */
+export function SiteHeader({
+  user,
+}: {
+  user: { name: string | null; image: string | null } | null;
+}) {
   return (
     <header
       data-site-header
@@ -24,7 +27,7 @@ export async function SiteHeader() {
           <span className="hidden sm:inline">{SITE_NAME}</span>
         </Link>
 
-        <HeaderNav signedIn={Boolean(session?.user)} />
+        <HeaderNav user={user} />
       </div>
     </header>
   );

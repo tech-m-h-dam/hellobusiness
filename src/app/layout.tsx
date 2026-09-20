@@ -4,8 +4,11 @@ import Script from "next/script";
 import "./globals.css";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
+import { GoogleOneTap } from "@/components/layout/GoogleOneTap";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/seo/site";
 import { jsonLd, organizationSchema, websiteSchema } from "@/lib/seo/metadata";
+import { auth } from "@/lib/auth/config";
+import { googleConfigured } from "@/lib/auth/status";
 
 // `display: swap` keeps text visible during font load (protects LCP);
 // next/font self-hosts the file, so there's no third-party font request.
@@ -33,7 +36,11 @@ export const viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Only consult the session when auth is actually configured, so
+  // deployments without OAuth keep every page statically renderable.
+  const session = googleConfigured ? await auth() : null;
+
   return (
     <html lang="en" className={`${inter.variable} h-full`}>
       <head>
@@ -51,11 +58,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        <SiteHeader />
+        <SiteHeader
+          user={session?.user ? { name: session.user.name ?? null, image: session.user.image ?? null } : null}
+        />
         <main id="main" className="flex-1">
           {children}
         </main>
         <SiteFooter />
+        {googleConfigured && !session?.user && <GoogleOneTap />}
 
         {/* Site-wide structured data. */}
         <script

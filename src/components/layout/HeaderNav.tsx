@@ -8,6 +8,7 @@
  * static content pages pay for the locale store and this component rather than
  * for the whole header.
  */
+import Image from "next/image";
 import Link from "next/link";
 import { UserCircle } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -21,7 +22,9 @@ const NAV: { href: string; key: MessageKey }[] = [
   { href: "/blog", key: "navBlog" },
 ];
 
-export function HeaderNav({ signedIn = false }: { signedIn?: boolean }) {
+type HeaderUser = { name: string | null; image: string | null };
+
+export function HeaderNav({ user = null }: { user?: HeaderUser | null }) {
   // The header is on every page, so restoring the saved language here means the
   // whole app picks it up rather than only the editor.
   useRestoreLocale();
@@ -43,13 +46,24 @@ export function HeaderNav({ signedIn = false }: { signedIn?: boolean }) {
 
       <LanguageSwitcher />
 
-      {signedIn && (
+      {user && (
         <Link
           href="/account"
           aria-label="My profile"
-          className="rounded-lg p-1.5 text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900"
+          className="rounded-lg p-0.5 text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900"
         >
-          <UserCircle className="size-5" />
+          {user.image ? (
+            <Image
+              src={user.image}
+              alt=""
+              width={28}
+              height={28}
+              className="size-7 rounded-full"
+              unoptimized
+            />
+          ) : (
+            <UserCircle className="size-5" />
+          )}
         </Link>
       )}
 

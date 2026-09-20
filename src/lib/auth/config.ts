@@ -26,8 +26,16 @@ function adminEmails(): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Shared with the Google One Tap route (src/app/api/auth/google-one-tap),
+ * which signs users in via a verified ID token rather than the redirect-based
+ * OAuth flow and needs the same adapter to create the user/account/session
+ * rows consistently with the normal sign-in path.
+ */
+export const adapter = PrismaAdapter(prisma);
+
 export const authConfig: NextAuthConfig = {
-  adapter: PrismaAdapter(prisma),
+  adapter,
   providers: googleConfigured
     ? [
         Google({

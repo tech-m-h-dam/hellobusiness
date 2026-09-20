@@ -24,7 +24,7 @@ export default function SignInPage() {
 
       <div className="mt-8 flex justify-center">
         {googleConfigured ? (
-          <SignInButton />
+          <SignInButton callbackUrl="/account" />
         ) : (
           <p className="rounded-lg bg-ink-50 px-4 py-3 text-[13px] text-ink-600">
             Google sign-in isn&rsquo;t configured on this deployment. The invoice generator works

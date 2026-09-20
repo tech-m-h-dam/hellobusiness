@@ -15,7 +15,7 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/invoice-generator",
     display: "standalone",
     background_color: "#ffffff",
-    theme_color: "#2563eb",
+    theme_color: "lab(54.466% -37.1861 -.272489)",
     orientation: "portrait-primary",
     categories: ["business", "finance", "productivity"],
     icons: [
