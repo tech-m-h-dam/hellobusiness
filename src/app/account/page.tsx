@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { Cloud, FileText, Mail } from "lucide-react";
+import { Cloud, FileText, Mail, ShieldCheck } from "lucide-react";
 import { auth } from "@/lib/auth/config";
 import { googleConfigured } from "@/lib/auth/status";
 import { prisma } from "@/lib/db/client";
@@ -110,12 +110,24 @@ export default async function AccountPage() {
             {user?.lastLogin ? ` · Last signed in ${formatDate(user.lastLogin)}` : ""}
           </p>
         </div>
-        <Link
-          href="/api/auth/signout"
-          className="rounded-lg border border-ink-300 px-3 py-1.5 text-[13px] font-medium text-ink-700 transition-colors hover:bg-ink-50"
-        >
-          Sign out
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          {/* Admins reach the dashboard from here rather than having to know
+              the /admin URL; everyone else never learns the route exists. */}
+          {session.user.isAdmin && (
+            <Link
+              href="/admin"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-[13px] font-medium text-brand-700 transition-colors hover:bg-brand-100"
+            >
+              <ShieldCheck className="size-4" aria-hidden="true" /> Admin dashboard
+            </Link>
+          )}
+          <Link
+            href="/api/auth/signout"
+            className="rounded-lg border border-ink-300 px-3 py-1.5 text-[13px] font-medium text-ink-700 transition-colors hover:bg-ink-50"
+          >
+            Sign out
+          </Link>
+        </div>
       </div>
 
       {/* Counts ------------------------------------------------------------ */}

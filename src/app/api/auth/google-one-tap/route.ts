@@ -20,6 +20,7 @@ import { NextResponse } from "next/server";
 import { OAuth2Client, type TokenPayload } from "google-auth-library";
 import { adapter, authConfig } from "@/lib/auth/config";
 import { googleConfigured } from "@/lib/auth/status";
+import { serverError } from "@/lib/api/errors";
 import { prisma } from "@/lib/db/client";
 import { clientKey, rateLimit } from "@/lib/api/rate-limit";
 
@@ -85,41 +86,48 @@ export async function POST(request: Request) {
   // account row yet (e.g. one created before this route existed) instead of
   // creating a duplicate — safe here because Google is the only provider and
   // `email_verified` was already checked above.
-  let user = await getUserByAccount({ providerAccountId, provider: "google" });
+  let user: Awaited<ReturnType<typeof getUserByAccount>>;
   let isNewUser = false;
-  if (!user) {
-    const userByEmail = await getUserByEmail(payload.email);
-    if (userByEmail) {
-      user = userByEmail;
-    } else {
-      user = await createUser({
-        // PrismaAdapter drops this and lets the database generate the real
-        // id — see @auth/prisma-adapter's createUser, which destructures
-        // `id` off before the insert. The type just requires one be present.
-        id: crypto.randomUUID(),
-        name: payload.name ?? null,
-        email: payload.email,
-        image: payload.picture ?? null,
-        emailVerified: null,
+  let session: Awaited<ReturnType<typeof createSession>>;
+  try {
+    user = await getUserByAccount({ providerAccountId, provider: "google" });
+    if (!user) {
+      const userByEmail = await getUserByEmail(payload.email);
+      if (userByEmail) {
+        user = userByEmail;
+      } else {
+        user = await createUser({
+          // PrismaAdapter drops this and lets the database generate the real
+          // id — see @auth/prisma-adapter's createUser, which destructures
+          // `id` off before the insert. The type just requires one be present.
+          id: crypto.randomUUID(),
+          name: payload.name ?? null,
+          email: payload.email,
+          image: payload.picture ?? null,
+          emailVerified: null,
+        });
+        isNewUser = true;
+      }
+      await linkAccount({
+        userId: user.id,
+        // Matches the `type` the Google provider's redirect flow stores
+        // (Google is configured as an OIDC provider — see lib/auth/config.ts).
+        type: "oidc",
+        provider: "google",
+        providerAccountId,
       });
-      isNewUser = true;
     }
-    await linkAccount({
-      userId: user.id,
-      // Matches the `type` the Google provider's redirect flow stores
-      // (Google is configured as an OIDC provider — see lib/auth/config.ts).
-      type: "oidc",
-      provider: "google",
-      providerAccountId,
-    });
-  }
 
-  const maxAge = authConfig.session?.maxAge ?? DEFAULT_MAX_AGE_SECONDS;
-  const session = await createSession({
-    sessionToken: crypto.randomUUID(),
-    userId: user.id,
-    expires: new Date(Date.now() + maxAge * 1000),
-  });
+    const maxAge = authConfig.session?.maxAge ?? DEFAULT_MAX_AGE_SECONDS;
+    session = await createSession({
+      sessionToken: crypto.randomUUID(),
+      userId: user.id,
+      expires: new Date(Date.now() + maxAge * 1000),
+    });
+  } catch (err) {
+    // A database failure here must not hand the caller the query that failed.
+    return serverError("POST /api/auth/google-one-tap", err);
+  }
 
   // Same best-effort lastLogin write as the redirect-flow's events.signIn.
   try {

@@ -7,7 +7,7 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { GoogleOneTap } from "@/components/layout/GoogleOneTap";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/seo/site";
 import { jsonLd, organizationSchema, websiteSchema } from "@/lib/seo/metadata";
-import { auth } from "@/lib/auth/config";
+import { optionalSession } from "@/lib/auth/session";
 import { googleConfigured } from "@/lib/auth/status";
 
 // `display: swap` keeps text visible during font load (protects LCP);
@@ -37,9 +37,10 @@ export const viewport = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  // Only consult the session when auth is actually configured, so
-  // deployments without OAuth keep every page statically renderable.
-  const session = googleConfigured ? await auth() : null;
+  // Only consult the session when auth is actually configured, so deployments
+  // without OAuth keep every page statically renderable — and never let that
+  // lookup take down a page that doesn't need it (see optionalSession).
+  const session = await optionalSession();
 
   return (
     <html lang="en" className={`${inter.variable} h-full`}>

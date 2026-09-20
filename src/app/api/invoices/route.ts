@@ -11,6 +11,7 @@ import { auth } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/client";
 import { invoiceSchema } from "@/lib/invoice/validation";
 import { clientKey, rateLimit } from "@/lib/api/rate-limit";
+import { serverError } from "@/lib/api/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -21,23 +22,27 @@ export async function GET() {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
-  const invoices = await prisma.savedInvoice.findMany({
-    where: { userId: session.user.id },
-    orderBy: { updatedAt: "desc" },
-    take: 100,
-    // Deliberately omit dataJson: the list view doesn't need invoice contents,
-    // and not sending them keeps the response small and the exposure minimal.
-    select: {
-      id: true,
-      invoiceNumber: true,
-      title: true,
-      templateId: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  try {
+    const invoices = await prisma.savedInvoice.findMany({
+      where: { userId: session.user.id },
+      orderBy: { updatedAt: "desc" },
+      take: 100,
+      // Deliberately omit dataJson: the list view doesn't need invoice contents,
+      // and not sending them keeps the response small and the exposure minimal.
+      select: {
+        id: true,
+        invoiceNumber: true,
+        title: true,
+        templateId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
-  return NextResponse.json({ invoices });
+    return NextResponse.json({ invoices });
+  } catch (err) {
+    return serverError("GET /api/invoices", err);
+  }
 }
 
 /** Create or update a saved invoice. */
@@ -75,27 +80,31 @@ export async function POST(request: Request) {
   const invoice = parsed.data;
   const title = invoice.customer.name || invoice.invoice.number;
 
-  const saved = await prisma.savedInvoice.upsert({
-    // Scoping by id alone would let one user overwrite another's row, so the
-    // ownership check is part of the write, not a separate read.
-    where: { id: invoice.id },
-    update: {
-      invoiceNumber: invoice.invoice.number,
-      title,
-      templateId: invoice.templateId,
-      dataJson: JSON.stringify(invoice),
-    },
-    create: {
-      id: invoice.id,
-      userId: session.user.id,
-      invoiceNumber: invoice.invoice.number,
-      title,
-      templateId: invoice.templateId,
-      dataJson: JSON.stringify(invoice),
-    },
-  });
+  try {
+    const saved = await prisma.savedInvoice.upsert({
+      // Scoping by id alone would let one user overwrite another's row, so the
+      // ownership check is part of the write, not a separate read.
+      where: { id: invoice.id },
+      update: {
+        invoiceNumber: invoice.invoice.number,
+        title,
+        templateId: invoice.templateId,
+        dataJson: JSON.stringify(invoice),
+      },
+      create: {
+        id: invoice.id,
+        userId: session.user.id,
+        invoiceNumber: invoice.invoice.number,
+        title,
+        templateId: invoice.templateId,
+        dataJson: JSON.stringify(invoice),
+      },
+    });
 
-  return NextResponse.json({ id: saved.id, updatedAt: saved.updatedAt });
+    return NextResponse.json({ id: saved.id, updatedAt: saved.updatedAt });
+  } catch (err) {
+    return serverError("POST /api/invoices", err);
+  }
 }
 
 /** Delete a saved invoice the signed-in user owns. */
@@ -108,14 +117,18 @@ export async function DELETE(request: Request) {
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-  // deleteMany with the userId in the filter makes ownership part of the query,
-  // so a guessed id from another account simply deletes nothing.
-  const result = await prisma.savedInvoice.deleteMany({
-    where: { id, userId: session.user.id },
-  });
+  try {
+    // deleteMany with the userId in the filter makes ownership part of the
+    // query, so a guessed id from another account simply deletes nothing.
+    const result = await prisma.savedInvoice.deleteMany({
+      where: { id, userId: session.user.id },
+    });
 
-  if (result.count === 0) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (result.count === 0) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return serverError("DELETE /api/invoices", err);
   }
-  return NextResponse.json({ ok: true });
 }

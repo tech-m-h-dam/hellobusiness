@@ -9,9 +9,9 @@ import { auth, googleConfigured } from "@/lib/auth/config";
  *
  * Authorization is enforced here, in a server component, on every admin route —
  * not in client code and not only in a proxy/middleware layer, so it cannot be
- * bypassed by navigating directly to a nested route. Admin identity comes from
- * the ADMIN_EMAILS environment variable, checked against the session's verified
- * Google email.
+ * bypassed by navigating directly to a nested route. Admin identity is the
+ * `isAdmin` column on the user row, granted by another admin from
+ * /admin/users; nothing the account itself controls can set it.
  *
  * The whole section is noindex, and /admin is disallowed in robots.txt.
  */
@@ -35,7 +35,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <h1 className="text-2xl font-bold text-ink-900">Admin unavailable</h1>
         <p className="mt-3 text-ink-600">
           Google sign-in is not configured on this deployment, so admin access cannot be verified.
-          Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and ADMIN_EMAILS to enable it.
+          Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable it.
         </p>
       </div>
     );

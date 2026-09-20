@@ -8,6 +8,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/client";
+import { serverError } from "@/lib/api/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +21,15 @@ export async function GET(_request: Request, ctx: RouteContext<"/api/invoices/[i
   const { id } = await ctx.params;
 
   // Ownership is part of the query, so another account's id simply finds nothing.
-  const saved = await prisma.savedInvoice.findFirst({
-    where: { id, userId: session.user.id },
-    select: { dataJson: true },
-  });
+  let saved: { dataJson: string } | null;
+  try {
+    saved = await prisma.savedInvoice.findFirst({
+      where: { id, userId: session.user.id },
+      select: { dataJson: true },
+    });
+  } catch (err) {
+    return serverError("GET /api/invoices/[id]", err);
+  }
 
   if (!saved) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

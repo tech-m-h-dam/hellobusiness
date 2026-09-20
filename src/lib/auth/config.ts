@@ -18,14 +18,6 @@ import { prisma } from "@/lib/db/client";
 export { googleConfigured } from "./status";
 import { googleConfigured } from "./status";
 
-/** Emails allowed into /admin, from ADMIN_EMAILS (comma-separated). */
-function adminEmails(): string[] {
-  return (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-}
-
 /**
  * Shared with the Google One Tap route (src/app/api/auth/google-one-tap),
  * which signs users in via a verified ID token rather than the redirect-based
@@ -52,7 +44,12 @@ export const authConfig: NextAuthConfig = {
     async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
-        session.user.isAdmin = adminEmails().includes((user.email ?? "").toLowerCase());
+        // Admin is a column on the user row, granted by another admin (see
+        // src/app/admin/users/actions.ts) — never derived from the email
+        // address, and never settable by the account itself. `user` here is
+        // the row PrismaAdapter loaded for this session, so this costs no
+        // extra query; AdapterUser just doesn't know about our column.
+        session.user.isAdmin = (user as { isAdmin?: boolean }).isAdmin === true;
       }
       return session;
     },

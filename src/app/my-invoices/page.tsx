@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { MyInvoices } from "@/components/invoice/MyInvoices";
-import { auth, googleConfigured } from "@/lib/auth/config";
+import { googleConfigured } from "@/lib/auth/status";
+import { optionalSession } from "@/lib/auth/session";
 
 /**
  * Invoice history.
@@ -17,7 +18,9 @@ export const metadata: Metadata = {
 };
 
 export default async function MyInvoicesPage() {
-  const session = googleConfigured ? await auth() : null;
+  // Signed-out visitors see their browser-held invoices here, so a failed
+  // session lookup must not cost them the page.
+  const session = await optionalSession();
 
   return (
     <section className="mx-auto max-w-5xl px-4 py-10">

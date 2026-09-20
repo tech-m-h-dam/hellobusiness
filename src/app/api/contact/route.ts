@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db/client";
 import { clientKey, rateLimit } from "@/lib/api/rate-limit";
+import { serverError } from "@/lib/api/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -49,9 +50,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  await prisma.contactMessage.create({
-    data: { name, email, subject: subject || null, message },
-  });
+  try {
+    await prisma.contactMessage.create({
+      data: { name, email, subject: subject || null, message },
+    });
+  } catch (err) {
+    return serverError("POST /api/contact", err);
+  }
 
   return NextResponse.json({ ok: true });
 }
