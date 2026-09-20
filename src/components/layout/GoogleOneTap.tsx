@@ -27,6 +27,7 @@ interface GoogleAccountsId {
     auto_select?: boolean;
     itp_support?: boolean;
     cancel_on_tap_outside?: boolean;
+    use_fedcm_for_prompt?: boolean;
   }): void;
   prompt(): void;
 }
@@ -78,6 +79,10 @@ export function GoogleOneTap() {
           // this app; otherwise falls back to the one-click floating prompt.
           auto_select: true,
           itp_support: true,
+          // Chrome removed the legacy (non-FedCM) One Tap UI in late 2024 —
+          // without this, prompt() below is a silent no-op and the popup
+          // never renders. This is now required, not optional.
+          use_fedcm_for_prompt: true,
         });
         window.google.accounts.id.prompt();
       }}

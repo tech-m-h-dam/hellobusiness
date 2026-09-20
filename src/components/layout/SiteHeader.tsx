@@ -11,8 +11,10 @@ import Image from "next/image";
  */
 export function SiteHeader({
   user,
+  googleConfigured,
 }: {
   user: { name: string | null; image: string | null } | null;
+  googleConfigured: boolean;
 }) {
   return (
     <header
@@ -27,7 +29,7 @@ export function SiteHeader({
           <span className="hidden sm:inline">{SITE_NAME}</span>
         </Link>
 
-        <HeaderNav user={user} />
+        <HeaderNav user={user} googleConfigured={googleConfigured} />
       </div>
     </header>
   );

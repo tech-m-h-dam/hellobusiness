@@ -60,6 +60,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         </a>
         <SiteHeader
           user={session?.user ? { name: session.user.name ?? null, image: session.user.image ?? null } : null}
+          googleConfigured={googleConfigured}
         />
         <main id="main" className="flex-1">
           {children}

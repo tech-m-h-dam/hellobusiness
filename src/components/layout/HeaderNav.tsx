@@ -12,6 +12,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { UserCircle } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { SignInButton } from "./SignInButton";
 import { useRestoreLocale, useT } from "@/lib/i18n/use-locale";
 import type { MessageKey } from "@/lib/i18n/messages";
 
@@ -24,7 +25,13 @@ const NAV: { href: string; key: MessageKey }[] = [
 
 type HeaderUser = { name: string | null; image: string | null };
 
-export function HeaderNav({ user = null }: { user?: HeaderUser | null }) {
+export function HeaderNav({
+  user = null,
+  googleConfigured = false,
+}: {
+  user?: HeaderUser | null;
+  googleConfigured?: boolean;
+}) {
   // The header is on every page, so restoring the saved language here means the
   // whole app picks it up rather than only the editor.
   useRestoreLocale();
@@ -66,6 +73,8 @@ export function HeaderNav({ user = null }: { user?: HeaderUser | null }) {
           )}
         </Link>
       )}
+
+      {!user && googleConfigured && <SignInButton size="sm">Sign in</SignInButton>}
 
       {/* The full call to action is long in every language; on small screens a
           short label keeps the header on one line without horizontal scroll. */}
