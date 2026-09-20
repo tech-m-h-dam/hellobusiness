@@ -92,6 +92,8 @@ export const invoiceItemSchema = z.object({
   discountValue: z.number().finite().default(0),
   discountType: discountTypeSchema.default("percentage"),
   taxIds: z.array(z.string()).default([]),
+  /** Per-line rate overrides keyed by tax id (e.g. mixed GST slabs). */
+  taxRates: z.record(z.string(), z.number().finite()).optional(),
   images: z.array(itemImageSchema).max(20, "Up to 20 images per item").default([]),
   imageSettings: itemImageSettingsSchema,
 });
@@ -132,6 +134,17 @@ export const paymentDetailsSchema = z.object({
   upiId: optionalText(80),
   paymentLink: optionalText(300),
   instructions: optionalText(1000),
+});
+
+export const transportDetailsSchema = z.object({
+  eWayBillNumber: optionalText(40),
+  eWayBillDate: optionalText(30),
+  transporterName: optionalText(120),
+  transporterId: optionalText(40),
+  vehicleNumber: optionalText(30),
+  modeOfTransport: optionalText(40),
+  placeOfSupply: optionalText(120),
+  dispatchFrom: optionalText(200),
 });
 
 export const qrSettingsSchema = z.object({
@@ -187,6 +200,7 @@ export const invoiceSettingsSchema = z.object({
   showBankDetails: z.boolean(),
   showQr: z.boolean(),
   showShipping: z.boolean(),
+  showTransport: z.boolean(),
   showPageNumbers: z.boolean(),
   showFooter: z.boolean(),
   showDueDate: z.boolean(),
@@ -210,6 +224,7 @@ export const invoiceSchema = z.object({
   discounts: z.array(discountSchema).max(10),
   charges: z.array(chargeSchema).max(10),
   payment: paymentDetailsSchema,
+  transport: transportDetailsSchema.optional(),
   qr: qrSettingsSchema,
   notes: optionalText(4000),
   terms: optionalText(4000),

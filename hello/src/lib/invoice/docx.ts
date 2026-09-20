@@ -335,6 +335,34 @@ export function buildInvoiceDocx(invoice: Invoice, totals: ComputedTotals): Docu
     );
   }
 
+  /* --- E-Way Bill / transport ------------------------------------------- */
+  if (s.showTransport) {
+    const tr = invoice.transport ?? {};
+    const transportRows: [string, string | undefined][] = [
+      [L("eWayBillNumber"), tr.eWayBillNumber],
+      [L("eWayBillDate"), tr.eWayBillDate],
+      [L("transporterName"), tr.transporterName],
+      [L("transporterId"), tr.transporterId],
+      [L("vehicleNumber"), tr.vehicleNumber],
+      [L("modeOfTransport"), tr.modeOfTransport],
+      [L("placeOfSupply"), tr.placeOfSupply],
+      [L("dispatchFrom"), tr.dispatchFrom],
+    ];
+    const present = transportRows.filter(([, v]) => Boolean(v)) as [string, string][];
+
+    if (present.length) {
+      children.push(
+        new Paragraph({
+          spacing: { before: 200, after: 40 },
+          children: [text(L("transportDetails").toUpperCase(), { bold: true, size: 9, color: "777777" })],
+        }),
+      );
+      for (const [label, value] of present) {
+        children.push(para(`${label}: ${value}`, { size: 9, color: "555555" }));
+      }
+    }
+  }
+
   /* --- Notes, terms, payment, signature --------------------------------- */
   if (s.showNotes && invoice.notes) {
     children.push(new Paragraph({ spacing: { before: 240, after: 40 }, children: [text(L("notes").toUpperCase(), { bold: true, size: 9, color: "777777" })] }));

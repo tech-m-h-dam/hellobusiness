@@ -22,6 +22,9 @@ import { useT } from "@/lib/i18n/use-locale";
 import { ItemImageManager } from "./ItemImageManager";
 import type { InvoiceItem } from "@/lib/invoice/types";
 
+/** The standard Indian GST slabs. */
+const GST_SLABS = [0, 5, 12, 18, 28] as const;
+
 function ItemRow({ item, index, total }: { item: InvoiceItem; index: number; total: number }) {
   const update = useInvoiceEditor((s) => s.update);
   const taxes = useInvoiceEditor((s) => s.invoice.taxes);
@@ -36,6 +39,30 @@ function ItemRow({ item, index, total }: { item: InvoiceItem; index: number; tot
       ...inv,
       items: inv.items.map((i) => (i.id === item.id ? { ...i, ...p } : i)),
     }));
+
+  const appliedTaxes = taxes.filter((t) => item.taxIds.includes(t.id));
+  // A GST setup is CGST+SGST (split at half each) or IGST (the full rate).
+  const gstTaxes = appliedTaxes.filter((t) => /^(cgst|sgst|igst|gst)$/i.test(t.name.trim()));
+
+  /** Set (or clear, when blank) this line's rate for one tax. */
+  const setTaxRate = (taxId: string, raw: string) => {
+    const next = { ...(item.taxRates ?? {}) };
+    if (raw.trim() === "") delete next[taxId];
+    else next[taxId] = Number(raw) || 0;
+    patch({ taxRates: next });
+  };
+
+  /** Apply a GST slab across this line's GST taxes. */
+  const applyGstSlab = (slab: number) => {
+    const next = { ...(item.taxRates ?? {}) };
+    const isSplit = gstTaxes.some((t) => /^(cgst|sgst)$/i.test(t.name.trim()));
+    for (const tax of gstTaxes) {
+      const name = tax.name.trim().toLowerCase();
+      // CGST and SGST each carry half of the slab; IGST/GST carries all of it.
+      next[tax.id] = isSplit && (name === "cgst" || name === "sgst") ? slab / 2 : slab;
+    }
+    patch({ taxRates: next });
+  };
 
   const move = (direction: -1 | 1) =>
     update((inv) => {
@@ -207,33 +234,77 @@ function ItemRow({ item, index, total }: { item: InvoiceItem; index: number; tot
                   No taxes defined yet — add one in the Tax &amp; charges section.
                 </p>
               ) : (
-                <div className="flex flex-wrap gap-2">
-                  {taxes.map((tax) => {
-                    const active = item.taxIds.includes(tax.id);
-                    return (
-                      <button
-                        key={tax.id}
-                        type="button"
-                        aria-pressed={active}
-                        onClick={() =>
-                          patch({
-                            taxIds: active
-                              ? item.taxIds.filter((id) => id !== tax.id)
-                              : [...item.taxIds, tax.id],
-                          })
-                        }
-                        className={`rounded-full border px-2.5 py-1 text-[12px] transition-colors ${
-                          active
-                            ? "border-brand-600 bg-brand-50 text-brand-800"
-                            : "border-ink-300 text-ink-600 hover:bg-ink-50"
-                        }`}
-                      >
-                        {tax.name} {tax.rate}
-                        {tax.mode === "percentage" ? "%" : ""}
-                      </button>
-                    );
-                  })}
-                </div>
+                <>
+                  <div className="flex flex-wrap gap-2">
+                    {taxes.map((tax) => {
+                      const active = item.taxIds.includes(tax.id);
+                      const effective = item.taxRates?.[tax.id] ?? tax.rate;
+                      return (
+                        <button
+                          key={tax.id}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() =>
+                            patch({
+                              taxIds: active
+                                ? item.taxIds.filter((id) => id !== tax.id)
+                                : [...item.taxIds, tax.id],
+                            })
+                          }
+                          className={`rounded-full border px-2.5 py-1 text-[12px] transition-colors ${
+                            active
+                              ? "border-brand-600 bg-brand-50 text-brand-800"
+                              : "border-ink-300 text-ink-600 hover:bg-ink-50"
+                          }`}
+                        >
+                          {tax.name} {effective}
+                          {tax.mode === "percentage" ? "%" : ""}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Per-line rates, so one invoice can carry several slabs. */}
+                  {appliedTaxes.length > 0 && (
+                    <div className="mt-2 space-y-2 rounded-lg bg-ink-50 p-2.5">
+                      <p className="text-[12px] text-ink-600">
+                        Rate for this item — leave blank to use the tax&rsquo;s own rate.
+                      </p>
+
+                      {/* GST slabs set CGST/SGST to half each, IGST to the full rate. */}
+                      {gstTaxes.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-[12px] text-ink-500">GST slab:</span>
+                          {GST_SLABS.map((slab) => (
+                            <button
+                              key={slab}
+                              type="button"
+                              onClick={() => applyGstSlab(slab)}
+                              className="rounded-full border border-ink-300 bg-white px-2 py-0.5 text-[12px] text-ink-700 transition-colors hover:border-brand-400 hover:text-brand-700"
+                            >
+                              {slab}%
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {appliedTaxes.map((tax) => (
+                          <Field key={tax.id} label={`${tax.name} rate`} htmlFor={`rate-${item.id}-${tax.id}`}>
+                            <Input
+                              id={`rate-${item.id}-${tax.id}`}
+                              type="number"
+                              step="any"
+                              placeholder={String(tax.rate)}
+                              value={item.taxRates?.[tax.id] ?? ""}
+                              onChange={(e) => setTaxRate(tax.id, e.target.value)}
+                            />
+                          </Field>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -266,7 +337,20 @@ export function ItemsEditor() {
         type="button"
         variant="secondary"
         onClick={() => {
-          update((inv) => ({ ...inv, items: [...inv.items, createLineItem()] }));
+          update((inv) => {
+            /*
+             * A new line inherits the tax treatment of the line above it — the
+             * taxes applied and any per-line rate override. Starting untaxed
+             * means every added line silently drops out of the tax total until
+             * someone notices, which is exactly the kind of error an invoice
+             * should not make easy.
+             */
+            const previous = inv.items[inv.items.length - 1];
+            const inherited = previous
+              ? { taxIds: [...previous.taxIds], taxRates: { ...(previous.taxRates ?? {}) } }
+              : { taxIds: inv.taxes.map((tax) => tax.id), taxRates: {} };
+            return { ...inv, items: [...inv.items, createLineItem(inherited)] };
+          });
           track("item_added");
         }}
       >

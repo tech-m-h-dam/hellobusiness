@@ -35,6 +35,8 @@ type Props = {
   initialTemplateId?: string;
   /** Column/section defaults for a specific invoice type, merged on first mount. */
   initialSettings?: Partial<import("@/lib/invoice/types").InvoiceSettings>;
+  /** Invoice defaults (currency, locale, title) for a specific invoice type. */
+  initialMeta?: Partial<import("@/lib/invoice/types").InvoiceMeta>;
   /**
    * Whether optional Google sign-in is configured on this deployment. Passed
    * down from the server so the post-download save prompt is never rendered
@@ -43,7 +45,12 @@ type Props = {
   authAvailable?: boolean;
 };
 
-export function InvoiceEditor({ initialTemplateId, initialSettings, authAvailable = false }: Props) {
+export function InvoiceEditor({
+  initialTemplateId,
+  initialSettings,
+  initialMeta,
+  authAvailable = false,
+}: Props) {
   const hydrated = useInvoiceEditor((s) => s.hydrated);
   const saving = useInvoiceEditor((s) => s.saving);
   const lastSavedAt = useInvoiceEditor((s) => s.lastSavedAt);
@@ -58,11 +65,12 @@ export function InvoiceEditor({ initialTemplateId, initialSettings, authAvailabl
   // Restore the in-progress draft, then apply any page-specific defaults.
   useEffect(() => {
     void hydrateFromDraft().then(() => {
-      if (initialTemplateId || initialSettings) {
+      if (initialTemplateId || initialSettings || initialMeta) {
         update((inv) => ({
           ...inv,
           templateId: initialTemplateId ?? inv.templateId,
           settings: { ...inv.settings, ...initialSettings },
+          invoice: { ...inv.invoice, ...initialMeta },
         }));
       }
       track("invoice_started");

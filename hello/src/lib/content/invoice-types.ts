@@ -10,7 +10,7 @@
  * Content lives as data so it can move to the CMS later without touching the
  * route component.
  */
-import type { InvoiceSettings } from "@/lib/invoice/types";
+import type { InvoiceMeta, InvoiceSettings } from "@/lib/invoice/types";
 
 export type InvoiceTypeContent = {
   slug: string;
@@ -26,6 +26,12 @@ export type InvoiceTypeContent = {
   faqs: { question: string; answer: string }[];
   templateId: string;
   settings: Partial<InvoiceSettings>;
+  /**
+   * Invoice defaults for this type — currency, locale, document title. A GST
+   * invoice in dollars is wrong out of the box, so the page that exists for
+   * GST should start in rupees.
+   */
+  meta?: Partial<InvoiceMeta>;
   relatedTemplates: string[];
   relatedGuides: { href: string; label: string }[];
   relatedExample?: string;
@@ -112,6 +118,7 @@ export const INVOICE_TYPES: InvoiceTypeContent[] = [
     ],
     templateId: "gst-classic",
     settings: gstSettings,
+    meta: { currency: "INR", locale: "en-IN", documentTitle: "Tax Invoice" },
     relatedTemplates: ["gst-classic", "gst-modern", "professional"],
     relatedGuides: [
       { href: "/guides/gst-invoice-format", label: "GST invoice format explained" },
@@ -185,6 +192,7 @@ export const INVOICE_TYPES: InvoiceTypeContent[] = [
     ],
     templateId: "professional",
     settings: { showTaxSummary: true },
+    meta: { documentTitle: "Tax Invoice" },
     relatedTemplates: ["professional", "classic-navy", "corporate"],
     relatedGuides: [
       { href: "/guides/invoice-tax-calculation", label: "How invoice tax is calculated" },

@@ -9,6 +9,7 @@
  * for the whole header.
  */
 import Link from "next/link";
+import { UserCircle } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useRestoreLocale, useT } from "@/lib/i18n/use-locale";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -20,7 +21,7 @@ const NAV: { href: string; key: MessageKey }[] = [
   { href: "/blog", key: "navBlog" },
 ];
 
-export function HeaderNav() {
+export function HeaderNav({ signedIn = false }: { signedIn?: boolean }) {
   // The header is on every page, so restoring the saved language here means the
   // whole app picks it up rather than only the editor.
   useRestoreLocale();
@@ -41,6 +42,16 @@ export function HeaderNav() {
       </nav>
 
       <LanguageSwitcher />
+
+      {signedIn && (
+        <Link
+          href="/account"
+          aria-label="My profile"
+          className="rounded-lg p-1.5 text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900"
+        >
+          <UserCircle className="size-5" />
+        </Link>
+      )}
 
       <Link
         href="/invoice-generator"

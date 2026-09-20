@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { useInvoiceEditor } from "@/stores/invoice-editor";
 import { TAX_PRESETS, createCharge, createDiscount, createTax, makeId } from "@/lib/invoice/defaults";
+import { TransportForm } from "./TransportForm";
 
 export function TaxesChargesForm() {
   const taxes = useInvoiceEditor((s) => s.invoice.taxes);
@@ -320,6 +321,8 @@ export function TaxesChargesForm() {
           </div>
         ))}
       </section>
+
+      <TransportForm />
 
       <div className="flex items-center justify-between rounded-lg border border-ink-200 px-3 py-2.5">
         <div>

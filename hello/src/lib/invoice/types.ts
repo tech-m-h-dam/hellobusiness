@@ -116,6 +116,15 @@ export type InvoiceItem = {
    * array means the line is not taxed.
    */
   taxIds: string[];
+  /**
+   * Per-line rate overrides, keyed by tax id.
+   *
+   * A tax definition carries a default rate, but real invoices mix rates across
+   * lines — Indian GST slabs (5/12/18/28%) are the common case, where one
+   * invoice can carry several. An entry here replaces the tax's own rate for
+   * this line only; anything absent falls back to the definition.
+   */
+  taxRates?: Record<string, number>;
   images: ItemImage[];
   imageSettings: ItemImageSettings;
 };
@@ -162,6 +171,27 @@ export type Charge = {
 /* -------------------------------------------------------------------------- */
 /* Payment, signature, custom fields                                           */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * E-Way Bill and transport details.
+ *
+ * Indian GST requires an E-Way Bill for the movement of goods above a value
+ * threshold, and the invoice is normally where the bill number, transporter and
+ * vehicle are recorded. Modelled as its own optional block rather than as
+ * custom fields so it can be printed as a labelled section and carried through
+ * the PDF and Word exports.
+ */
+export type TransportDetails = {
+  eWayBillNumber?: string;
+  eWayBillDate?: string;
+  transporterName?: string;
+  transporterId?: string;
+  vehicleNumber?: string;
+  /** Road / Rail / Air / Ship. Free text: the list differs by context. */
+  modeOfTransport?: string;
+  placeOfSupply?: string;
+  dispatchFrom?: string;
+};
 
 export type PaymentDetails = {
   bankName?: string;
@@ -255,6 +285,8 @@ export type InvoiceSettings = {
   showBankDetails: boolean;
   showQr: boolean;
   showShipping: boolean;
+  /** Print the E-Way Bill / transport block. */
+  showTransport: boolean;
   showPageNumbers: boolean;
   showFooter: boolean;
   showDueDate: boolean;
@@ -287,6 +319,8 @@ export type Invoice = {
   discounts: Discount[];
   charges: Charge[];
   payment: PaymentDetails;
+  /** E-Way Bill / transport block (GST). Absent on invoices that don't need it. */
+  transport?: TransportDetails;
   qr: QrSettings;
   notes?: string;
   terms?: string;

@@ -61,8 +61,18 @@ import {
 } from "./money";
 import { amountToWords } from "./words";
 
-/** Resolve the tax definitions referenced by a line, skipping unknown/duplicate ids. */
-function resolveTaxes(taxIds: string[], taxes: Tax[]): Tax[] {
+/**
+ * Resolve the tax definitions referenced by a line, skipping unknown/duplicate
+ * ids and applying any per-line rate override.
+ *
+ * The override is what lets one invoice carry several GST slabs: the CGST/SGST
+ * definitions are shared, while each line states the rate that applies to it.
+ */
+function resolveTaxes(
+  taxIds: string[],
+  taxes: Tax[],
+  overrides?: Record<string, number>,
+): Tax[] {
   if (!taxIds?.length) return [];
   const byId = new Map(taxes.map((t) => [t.id, t]));
   const seen = new Set<string>();
@@ -71,7 +81,11 @@ function resolveTaxes(taxIds: string[], taxes: Tax[]): Tax[] {
     if (seen.has(id)) continue; // a duplicated id would otherwise charge tax twice
     seen.add(id);
     const tax = byId.get(id);
-    if (tax) out.push(tax);
+    if (!tax) continue;
+    const override = overrides?.[id];
+    out.push(
+      typeof override === "number" && Number.isFinite(override) ? { ...tax, rate: override } : tax,
+    );
   }
   return out;
 }
@@ -223,7 +237,16 @@ export function computeTotals(invoice: Invoice): ComputedTotals {
   /* --- 3. Per line: extract tax, round, and build the line total from the -- */
   /*        already-rounded net + tax so it is additive by construction. ---- */
   const computedItems: Record<string, ComputedItem> = {};
+  /**
+   * Tax summary buckets.
+   *
+   * Keyed by tax id *and* rate, not by id alone: with per-line rate overrides
+   * one invoice can carry several GST slabs against the same CGST definition,
+   * and those have to be reported as separate lines ("CGST 9%", "CGST 14%")
+   * rather than silently merged under whichever rate happened to appear first.
+   */
   const taxTotals = new Map<string, TaxPart>();
+  const bucketKey = (part: TaxPart) => `${part.taxId}@${part.rate}`;
 
   let subtotal: Micro = 0; // sum of rounded per-line taxable values
   let itemDiscountTotal: Micro = 0;
@@ -237,7 +260,7 @@ export function computeTotals(invoice: Invoice): ComputedTotals {
     const share = allocatedDiscount.get(item.id) ?? 0;
     const discountedNet = net - share;
 
-    const applicable = resolveTaxes(item.taxIds ?? [], taxes);
+    const applicable = resolveTaxes(item.taxIds ?? [], taxes, item.taxRates);
     const { taxableValue, taxTotal: lineTax, parts } = splitTax(
       discountedNet,
       applicable,
@@ -246,9 +269,10 @@ export function computeTotals(invoice: Invoice): ComputedTotals {
     const lineTotal = taxableValue + lineTax;
 
     for (const part of parts) {
-      const existing = taxTotals.get(part.taxId);
+      const key = bucketKey(part);
+      const existing = taxTotals.get(key);
       if (existing) existing.amount += part.amount;
-      else taxTotals.set(part.taxId, { ...part });
+      else taxTotals.set(key, { ...part });
     }
 
     subtotal += taxableValue;
@@ -289,9 +313,10 @@ export function computeTotals(invoice: Invoice): ComputedTotals {
       // Charges only ever carry exclusive tax in practice (an inclusive tax on
       // a fee would silently reduce the fee), but splitTax handles both safely.
       for (const part of parts) {
-        const existing = taxTotals.get(part.taxId);
+        const key = bucketKey(part);
+        const existing = taxTotals.get(key);
         if (existing) existing.amount += part.amount;
-        else taxTotals.set(part.taxId, { ...part });
+        else taxTotals.set(key, { ...part });
       }
       taxTotal += chargeTax;
       chargeTotal += chargeTax;

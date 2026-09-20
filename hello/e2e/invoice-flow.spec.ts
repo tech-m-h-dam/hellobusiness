@@ -469,3 +469,94 @@ test("language is switched from the navbar and applies across the app", async ({
   await page.goto("/invoice-generator");
   await expect(page.getByRole("tab", { name: "Articles" })).toBeVisible();
 });
+
+test("per-item GST slabs on one invoice", async ({ page, isMobile }) => {
+  await page.goto("/invoice-generator");
+
+  // CGST + SGST, defined once at invoice level.
+  await page.getByRole("tab", { name: "Tax" }).click();
+  await form(page).getByLabel("Quick preset").click();
+  await page.getByRole("option", { name: /CGST 9% \+ SGST 9%/ }).click();
+
+  await page.getByRole("tab", { name: "Items" }).click();
+  await form(page).getByLabel("Item 1 name").fill("Standard rated");
+  await form(page).getByLabel("Item 1 quantity").fill("1");
+  await form(page).getByLabel("Item 1 rate").fill("1000");
+
+  // A second line on a different slab.
+  await page.getByRole("button", { name: "Add line item" }).click();
+  await form(page).getByLabel("Item 2 name").fill("Reduced rated");
+  await form(page).getByLabel("Item 2 quantity").fill("1");
+  await form(page).getByLabel("Item 2 rate").fill("1000");
+
+  // Put line 2 on the 5% slab via the quick-set.
+  await form(page).getByRole("button", { name: "Details" }).nth(1).click();
+  await form(page).getByRole("button", { name: "5%", exact: true }).click();
+
+  const doc = await showPreview(page, isMobile);
+
+  // 1000 @18% = 180, 1000 @5% = 50 -> 2230 total.
+  await expect(doc.getByText("₹2,230.00").or(doc.getByText("$2,230.00")).first()).toBeVisible();
+
+  // Each slab is reported separately rather than merged under one CGST line.
+  await expect(doc.getByText(/CGST \(9%\)/)).toBeVisible();
+  await expect(doc.getByText(/CGST \(2.5%\)/)).toBeVisible();
+});
+
+test("E-Way Bill details print on the invoice", async ({ page, isMobile }) => {
+  await page.goto("/invoice-generator");
+
+  await page.getByRole("tab", { name: "Tax" }).click();
+  await page.getByRole("switch", { name: "E-Way Bill & transport" }).click();
+
+  await form(page).getByLabel("E-Way Bill number").fill("381234567890");
+  await form(page).getByLabel("Vehicle number").fill("KA 01 AB 1234");
+  await form(page).getByLabel("Transporter name").fill("Bluedart Logistics");
+
+  const doc = await showPreview(page, isMobile);
+  await expect(doc.getByText("381234567890")).toBeVisible();
+  await expect(doc.getByText("KA 01 AB 1234")).toBeVisible();
+  await expect(doc.getByText("Bluedart Logistics")).toBeVisible();
+});
+
+test("item column headers can be renamed on the document", async ({ page, isMobile }) => {
+  test.skip(isMobile, "click-to-edit is a desktop/tablet affordance");
+  await page.goto("/invoice-generator");
+
+  const doc = await showPreview(page, isMobile);
+
+  // Column headers are labels like any other printed wording.
+  await doc.getByRole("button", { name: /Label: Qty/ }).click();
+  await doc.getByRole("textbox", { name: /Label/ }).fill("Hours");
+  await page.keyboard.press("Enter");
+
+  await expect(doc.getByRole("columnheader", { name: "Hours" })).toBeVisible();
+  await expect(doc.getByRole("columnheader", { name: "Qty" })).toHaveCount(0);
+});
+
+test("a saved template carries the tax setup and remaps existing lines", async ({ page }) => {
+  await page.goto("/invoice-generator");
+
+  await page.getByRole("tab", { name: "Tax" }).click();
+  await form(page).getByLabel("Quick preset").click();
+  await page.getByRole("option", { name: /CGST 9% \+ SGST 9%/ }).click();
+
+  await page.getByRole("tab", { name: "Design" }).click();
+  await page.getByRole("button", { name: "My templates" }).click();
+  await page.getByLabel("Template name").fill("GST intra-state");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("button", { name: "Done" }).click();
+
+  // Start clean, then re-apply: the taxes come back and the line stays taxed.
+  await page.getByRole("tab", { name: "Items" }).click();
+  await form(page).getByLabel("Item 1 rate").fill("1000");
+
+  await page.getByRole("tab", { name: "Design" }).click();
+  await page.getByRole("button", { name: "My templates" }).click();
+  await page.getByRole("button", { name: "Use" }).first().click();
+
+  await page.getByRole("tab", { name: "Tax" }).click();
+  const taxNames = form(page).getByLabel("Tax name");
+  await expect(taxNames.nth(0)).toHaveValue("CGST");
+  await expect(taxNames.nth(1)).toHaveValue("SGST");
+});

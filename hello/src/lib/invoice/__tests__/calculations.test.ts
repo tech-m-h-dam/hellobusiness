@@ -287,3 +287,91 @@ describe("computeTotals — amount in words", () => {
     expect(totals.amountInWords).toContain("Dollars");
   });
 });
+
+describe("computeTotals — per-item tax rates (mixed GST slabs)", () => {
+  it("applies a per-line rate override instead of the tax's own rate", () => {
+    const gst = createTax({ name: "GST", rate: 18, inclusive: false });
+    const inv = createInvoice({
+      items: [createLineItem({ quantity: 1, rate: 1000, taxIds: [gst.id], taxRates: { [gst.id]: 5 } })],
+      taxes: [gst],
+    });
+    const totals = computeTotals(inv);
+    // 5% override, not the 18% on the definition.
+    expect(totals.taxTotal).toBe(50);
+    expect(totals.total).toBe(1050);
+  });
+
+  it("supports different slabs on different lines of one invoice", () => {
+    const cgst = createTax({ name: "CGST", rate: 9, inclusive: false });
+    const sgst = createTax({ name: "SGST", rate: 9, inclusive: false });
+    const inv = createInvoice({
+      items: [
+        // 5% slab -> CGST 2.5 + SGST 2.5
+        createLineItem({
+          quantity: 1,
+          rate: 1000,
+          taxIds: [cgst.id, sgst.id],
+          taxRates: { [cgst.id]: 2.5, [sgst.id]: 2.5 },
+        }),
+        // 18% slab -> CGST 9 + SGST 9 (the definition's own rate)
+        createLineItem({ quantity: 1, rate: 1000, taxIds: [cgst.id, sgst.id] }),
+      ],
+      taxes: [cgst, sgst],
+    });
+    const totals = computeTotals(inv);
+
+    // 1000 @5% = 50, 1000 @18% = 180
+    expect(totals.taxTotal).toBe(230);
+    expect(totals.total).toBe(2230);
+  });
+
+  it("reports each slab as its own summary line rather than merging them", () => {
+    const cgst = createTax({ name: "CGST", rate: 9, inclusive: false });
+    const inv = createInvoice({
+      items: [
+        createLineItem({ quantity: 1, rate: 1000, taxIds: [cgst.id], taxRates: { [cgst.id]: 2.5 } }),
+        createLineItem({ quantity: 1, rate: 1000, taxIds: [cgst.id] }),
+      ],
+      taxes: [cgst],
+    });
+    const totals = computeTotals(inv);
+
+    // Two CGST buckets, one per rate — not a single merged "CGST" line.
+    const cgstRows = totals.taxSummary.filter((t) => t.name === "CGST");
+    expect(cgstRows).toHaveLength(2);
+    expect(cgstRows.map((r) => r.rate).sort((a, b) => a - b)).toEqual([2.5, 9]);
+    expect(cgstRows.map((r) => r.amount).sort((a, b) => a - b)).toEqual([25, 90]);
+  });
+
+  it("an override of 0 means zero-rated, not 'fall back to the definition'", () => {
+    const gst = createTax({ name: "GST", rate: 18, inclusive: false });
+    const inv = createInvoice({
+      items: [createLineItem({ quantity: 1, rate: 1000, taxIds: [gst.id], taxRates: { [gst.id]: 0 } })],
+      taxes: [gst],
+    });
+    expect(computeTotals(inv).total).toBe(1000);
+  });
+
+  it("an override for a tax the line does not use is ignored", () => {
+    const gst = createTax({ name: "GST", rate: 18, inclusive: false });
+    const other = createTax({ name: "VAT", rate: 20, inclusive: false });
+    const inv = createInvoice({
+      items: [createLineItem({ quantity: 1, rate: 100, taxIds: [gst.id], taxRates: { [other.id]: 99 } })],
+      taxes: [gst, other],
+    });
+    expect(computeTotals(inv).total).toBe(118);
+  });
+
+  it("per-line overrides work with inclusive pricing too", () => {
+    const gst = createTax({ name: "GST", rate: 18, inclusive: true });
+    const inv = createInvoice({
+      items: [createLineItem({ quantity: 1, rate: 1050, taxIds: [gst.id], taxRates: { [gst.id]: 5 } })],
+      taxes: [gst],
+    });
+    const totals = computeTotals(inv);
+    // 1050 inclusive of 5% -> 1000 taxable + 50 tax, total unchanged.
+    expect(totals.total).toBe(1050);
+    expect(totals.taxTotal).toBe(50);
+    expect(totals.taxableBase).toBe(1000);
+  });
+});

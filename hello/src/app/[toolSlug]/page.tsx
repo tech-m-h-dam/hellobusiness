@@ -70,6 +70,7 @@ export default async function InvoiceTypePage(props: PageProps<"/[toolSlug]">) {
         <InvoiceEditor
           initialTemplateId={content.templateId}
           initialSettings={content.settings}
+          initialMeta={content.meta}
           authAvailable={googleConfigured}
         />
       </section>

@@ -52,6 +52,15 @@ export type CustomTemplate = {
   settings: Invoice["settings"];
   /** Renamed document wording, saved alongside the styling. */
   labels: NonNullable<Invoice["labels"]>;
+  /**
+   * Tax definitions saved with the template.
+   *
+   * Configuration, not invoice content: re-creating a CGST/SGST split for every
+   * invoice is the most tedious part of GST setup. Applying a template
+   * re-creates these with fresh ids and points existing line items at the
+   * matching ones by name, so nothing silently loses its tax.
+   */
+  taxes?: Invoice["taxes"];
   createdAt: string;
   updatedAt: string;
 };

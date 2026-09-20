@@ -436,6 +436,49 @@ function TotalsPdf({ invoice, totals, styles }: { invoice: Invoice; totals: Comp
   );
 }
 
+/** E-Way Bill / transport details. */
+function TransportPdf({ invoice, styles }: { invoice: Invoice; styles: Styles }) {
+  if (!invoice.settings.showTransport) return null;
+  const t = invoice.transport ?? {};
+  const L = (key: LabelKey) => labelFor(invoice, key);
+
+  const rows: [string, string | undefined][] = [
+    [L("eWayBillNumber"), t.eWayBillNumber],
+    [L("eWayBillDate"), t.eWayBillDate],
+    [L("transporterName"), t.transporterName],
+    [L("transporterId"), t.transporterId],
+    [L("vehicleNumber"), t.vehicleNumber],
+    [L("modeOfTransport"), t.modeOfTransport],
+    [L("placeOfSupply"), t.placeOfSupply],
+    [L("dispatchFrom"), t.dispatchFrom],
+  ].filter(([, v]) => Boolean(v)) as [string, string][];
+
+  if (!rows.length) return null;
+
+  return (
+    <View
+      style={{
+        marginTop: 14,
+        borderWidth: 0.5,
+        borderColor: "#e2e8f0",
+        padding: 8,
+        borderRadius: 3,
+      }}
+      wrap={false}
+    >
+      <Text style={styles.sectionLabel}>{L("transportDetails")}</Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+        {rows.map(([label, value]) => (
+          <View key={label} style={{ flexDirection: "row", gap: 4, width: "50%", paddingVertical: 1 }}>
+            <Text style={[styles.small, styles.muted]}>{label}:</Text>
+            <Text style={styles.small}>{value}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function FooterAreaPdf({
   invoice,
   styles,
@@ -540,6 +583,7 @@ export function InvoicePdfDocument({
     <>
       <ItemsTablePdf invoice={invoice} totals={totals} styles={styles} />
       <TotalsPdf invoice={invoice} totals={totals} styles={styles} />
+      <TransportPdf invoice={invoice} styles={styles} />
       <FooterAreaPdf invoice={invoice} styles={styles} qrDataUrl={qrDataUrl} />
     </>
   );

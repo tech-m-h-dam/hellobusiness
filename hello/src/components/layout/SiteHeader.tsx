@@ -2,9 +2,14 @@ import Link from "next/link";
 import { FileText } from "lucide-react";
 import { SITE_NAME } from "@/lib/seo/site";
 import { HeaderNav } from "./HeaderNav";
+import { auth } from "@/lib/auth/config";
+import { googleConfigured } from "@/lib/auth/status";
 
 /** Server component; only the nav/language controls hydrate. */
-export function SiteHeader() {
+export async function SiteHeader() {
+  // Only consult the session when auth is actually configured, so deployments
+  // without OAuth keep every page statically renderable.
+  const session = googleConfigured ? await auth() : null;
   return (
     <header
       data-site-header
@@ -18,7 +23,7 @@ export function SiteHeader() {
           <span className="hidden sm:inline">{SITE_NAME}</span>
         </Link>
 
-        <HeaderNav />
+        <HeaderNav signedIn={Boolean(session?.user)} />
       </div>
     </header>
   );

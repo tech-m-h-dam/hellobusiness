@@ -16,12 +16,14 @@ import {
   PaymentBlock,
   SignatureBlock,
   TotalsBlock,
+  TransportBlock,
 } from "../parts";
 
 /** Common bottom section: notes/terms + payment on the left, signature right. */
 function DocumentFooterArea(props: DocProps) {
   return (
     <>
+      <TransportBlock {...props} />
       <div className="mt-8 grid grid-cols-[1fr_auto] gap-8">
         <div className="space-y-4">
           <NotesTermsBlock {...props} />
@@ -126,6 +128,7 @@ export function SidebarLayout(props: DocProps) {
         <div className="mt-6">
           <TotalsBlock {...props} />
         </div>
+        <TransportBlock {...props} />
         <div className="mt-8 grid grid-cols-[1fr_auto] gap-8">
           <NotesTermsBlock {...props} />
           <SignatureBlock {...props} />

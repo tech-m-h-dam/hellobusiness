@@ -674,6 +674,55 @@ export function PaymentBlock({ invoice, edit }: DocProps) {
   );
 }
 
+/** E-Way Bill / transport details, printed as a labelled grid. */
+export function TransportBlock({ invoice, edit }: DocProps) {
+  if (!invoice.settings.showTransport) return null;
+  const t = invoice.transport ?? {};
+
+  const rows: { key: LabelKey; field: keyof NonNullable<Invoice["transport"]> }[] = [
+    { key: "eWayBillNumber", field: "eWayBillNumber" },
+    { key: "eWayBillDate", field: "eWayBillDate" },
+    { key: "transporterName", field: "transporterName" },
+    { key: "transporterId", field: "transporterId" },
+    { key: "vehicleNumber", field: "vehicleNumber" },
+    { key: "modeOfTransport", field: "modeOfTransport" },
+    { key: "placeOfSupply", field: "placeOfSupply" },
+    { key: "dispatchFrom", field: "dispatchFrom" },
+  ];
+
+  const visible = rows.filter((r) => t[r.field] || edit);
+  if (!visible.length) return null;
+
+  const setTransport = (field: keyof NonNullable<Invoice["transport"]>, next: string) =>
+    edit?.patch((inv) => ({ ...inv, transport: { ...inv.transport, [field]: next } }));
+
+  return (
+    <div className="mt-4 rounded border border-ink-200 p-2.5 text-[11px] text-ink-600">
+      <p className="font-semibold uppercase tracking-wide text-ink-500">
+        <EditableLabel edit={edit} invoice={invoice} labelKey="transportDetails" />
+      </p>
+      <dl className="mt-1.5 grid grid-cols-2 gap-x-4 gap-y-0.5">
+        {visible.map((row) => (
+          <div key={row.key} className="flex gap-1.5">
+            <dt className="font-medium text-ink-500">
+              <EditableLabel edit={edit} invoice={invoice} labelKey={row.key} />:
+            </dt>
+            <dd className="text-ink-800">
+              <Editable
+                edit={edit}
+                value={t[row.field] ?? ""}
+                placeholder="—"
+                ariaLabel={labelFor(invoice, row.key)}
+                onCommit={(v) => setTransport(row.field, v)}
+              />
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 export function NotesTermsBlock({ invoice, edit }: DocProps) {
   if (!invoice.settings.showNotes && !invoice.settings.showTerms) return null;
   const setField = (key: "notes" | "terms", next: string) =>

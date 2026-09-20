@@ -59,9 +59,10 @@ export function SaveTemplateDialog() {
         id: makeId("tpl"),
         name: trimmed,
         baseTemplateId: invoice.templateId,
-        // Presentation only — no invoice content is captured here.
+        // Presentation and configuration only — no invoice content.
         settings: invoice.settings,
         labels: invoice.labels ?? {},
+        taxes: invoice.taxes,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -77,12 +78,44 @@ export function SaveTemplateDialog() {
   }
 
   function apply(template: CustomTemplate) {
-    update((inv) => ({
-      ...inv,
-      templateId: template.baseTemplateId,
-      settings: { ...inv.settings, ...template.settings },
-      labels: { ...template.labels },
-    }));
+    update((inv) => {
+      if (!template.taxes?.length) {
+        return {
+          ...inv,
+          templateId: template.baseTemplateId,
+          settings: { ...inv.settings, ...template.settings },
+          labels: { ...template.labels },
+        };
+      }
+
+      // Re-create the saved taxes with fresh ids, then re-point each line item
+      // at the equivalent tax by name. Reusing the stored ids would collide
+      // with whatever this invoice already has; dropping the mapping would
+      // silently untax every existing line.
+      const newTaxes = template.taxes.map((t) => ({ ...t, id: makeId("tax") }));
+      const byName = new Map(newTaxes.map((t) => [t.name.trim().toLowerCase(), t]));
+      const oldById = new Map(inv.taxes.map((t) => [t.id, t]));
+
+      return {
+        ...inv,
+        templateId: template.baseTemplateId,
+        settings: { ...inv.settings, ...template.settings },
+        labels: { ...template.labels },
+        taxes: newTaxes,
+        items: inv.items.map((item) => {
+          const remapped = item.taxIds
+            .map((id) => byName.get(oldById.get(id)?.name.trim().toLowerCase() ?? "")?.id)
+            .filter((id): id is string => Boolean(id));
+          // Any per-line rate overrides follow their tax to the new id.
+          const rates: Record<string, number> = {};
+          for (const [oldId, rate] of Object.entries(item.taxRates ?? {})) {
+            const nextId = byName.get(oldById.get(oldId)?.name.trim().toLowerCase() ?? "")?.id;
+            if (nextId) rates[nextId] = rate;
+          }
+          return { ...item, taxIds: remapped, taxRates: rates };
+        }),
+      };
+    });
     setOpen(false);
   }
 
@@ -102,8 +135,9 @@ export function SaveTemplateDialog() {
         <DialogHeader>
           <DialogTitle>My templates</DialogTitle>
           <DialogDescription>
-            Save the current colours, fonts, layout, columns and labels as a reusable template.
-            Your invoice content is never part of a template, so applying one is always safe.
+            Save the current colours, fonts, layout, columns, labels and tax setup as a reusable
+            template. Your business, customer and line items are never part of a template, so
+            applying one is always safe.
           </DialogDescription>
         </DialogHeader>
 

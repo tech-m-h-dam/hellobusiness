@@ -53,6 +53,17 @@ export const DEFAULT_LABELS = {
   amountInWords: "Amount in words",
   balanceDue: "Balance Due",
 
+  // Transport / E-Way Bill
+  transportDetails: "E-Way Bill & Transport",
+  eWayBillNumber: "E-Way Bill No.",
+  eWayBillDate: "E-Way Bill Date",
+  transporterName: "Transporter",
+  transporterId: "Transporter ID",
+  vehicleNumber: "Vehicle No.",
+  modeOfTransport: "Mode of Transport",
+  placeOfSupply: "Place of Supply",
+  dispatchFrom: "Dispatched From",
+
   // Footer blocks
   notes: "Notes",
   terms: "Terms & Conditions",
@@ -84,6 +95,13 @@ export const LABEL_GROUPS: { title: string; keys: LabelKey[] }[] = [
   {
     title: "Totals",
     keys: ["subtotal", "itemDiscounts", "taxableValue", "charges", "rounding", "total", "amountInWords", "balanceDue"],
+  },
+  {
+    title: "E-Way Bill & transport",
+    keys: [
+      "transportDetails", "eWayBillNumber", "eWayBillDate", "transporterName",
+      "transporterId", "vehicleNumber", "modeOfTransport", "placeOfSupply", "dispatchFrom",
+    ],
   },
   { title: "Footer", keys: ["notes", "terms", "paymentDetails", "authorizedSignature"] },
 ];
