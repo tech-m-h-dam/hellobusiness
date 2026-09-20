@@ -21,11 +21,84 @@ import type {
 import { formatMoney } from "@/lib/invoice/money";
 import { formatInvoiceDate } from "@/lib/invoice/format";
 import { type LabelKey, labelFor } from "@/lib/invoice/labels";
+import type { InlineEdit } from "@/lib/invoice/inline-edit";
 
 export type DocProps = {
   invoice: Invoice;
   totals: ComputedTotals;
+  /**
+   * Supplied only by the interactive editor. When absent every field below
+   * renders as plain text, which is what the static example pages and the
+   * print/PDF paths need.
+   */
+  edit?: InlineEdit;
 };
+
+/**
+ * Render `value` as editable text when editing is enabled, or as plain text
+ * when it is not. Keeping the branch here means callers never have to care
+ * which mode the document is in.
+ */
+function Editable({
+  edit,
+  value,
+  display,
+  onCommit,
+  ariaLabel,
+  placeholder,
+  multiline,
+  numeric,
+  dateInput,
+  className,
+}: {
+  edit?: InlineEdit;
+  value: string;
+  display?: string;
+  onCommit: (next: string) => void;
+  ariaLabel: string;
+  placeholder?: string;
+  multiline?: boolean;
+  numeric?: boolean;
+  dateInput?: boolean;
+  className?: string;
+}) {
+  // Non-interactive consumers show the formatted text, never the raw value.
+  if (!edit) return <>{display ?? value}</>;
+  return edit.field({
+    value,
+    display,
+    onCommit,
+    ariaLabel,
+    placeholder,
+    multiline,
+    numeric,
+    dateInput,
+    className,
+  });
+}
+
+/** Rename a printed label in place — "click any label to rename it". */
+function EditableLabel({
+  edit,
+  invoice,
+  labelKey,
+  className,
+}: {
+  edit?: InlineEdit;
+  invoice: Invoice;
+  labelKey: LabelKey;
+  className?: string;
+}) {
+  const value = labelFor(invoice, labelKey);
+  if (!edit) return <>{value}</>;
+  return edit.field({
+    value,
+    ariaLabel: `Label: ${value}`,
+    className,
+    onCommit: (next) =>
+      edit.patch((inv) => ({ ...inv, labels: { ...inv.labels, [labelKey]: next } })),
+  });
+}
 
 function money(invoice: Invoice, amount: number) {
   return formatMoney(amount, invoice.invoice.currency, invoice.invoice.locale);
@@ -33,8 +106,10 @@ function money(invoice: Invoice, amount: number) {
 
 /* -------------------------------------------------------------------------- */
 
-export function BusinessIdentity({ invoice, tone = "dark" }: DocProps & { tone?: "dark" | "light" }) {
+export function BusinessIdentity({ invoice, edit, tone = "dark" }: DocProps & { tone?: "dark" | "light" }) {
   const b = invoice.business;
+  const setBiz = (key: keyof Invoice["business"], next: string) =>
+    edit?.patch((inv) => ({ ...inv, business: { ...inv.business, [key]: next } }));
   const textColor = tone === "light" ? "text-white" : "text-ink-900";
   const subColor = tone === "light" ? "text-white/80" : "text-ink-600";
   return (
@@ -49,16 +124,54 @@ export function BusinessIdentity({ invoice, tone = "dark" }: DocProps & { tone?:
         />
       )}
       <div>
-        <p className={`text-lg font-bold leading-tight ${textColor}`}>{b.name || "Your Business Name"}</p>
+        <p className={`text-lg font-bold leading-tight ${textColor}`}>
+          <Editable
+            edit={edit}
+            value={b.name}
+            placeholder="Your Business Name"
+            ariaLabel="Business name"
+            onCommit={(v) => setBiz("name", v)}
+          />
+        </p>
         <div className={`mt-0.5 text-[11.5px] leading-snug ${subColor}`}>
-          {b.addressLine1 && <p>{b.addressLine1}</p>}
+          {(b.addressLine1 || edit) && (
+            <p>
+              <Editable
+                edit={edit}
+                value={b.addressLine1 ?? ""}
+                placeholder="Street address"
+                ariaLabel="Business address line 1"
+                onCommit={(v) => setBiz("addressLine1", v)}
+              />
+            </p>
+          )}
           {b.addressLine2 && <p>{b.addressLine2}</p>}
           {(b.city || b.state || b.postalCode) && (
             <p>{[b.city, b.state, b.postalCode].filter(Boolean).join(", ")}</p>
           )}
           {b.country && <p>{b.country}</p>}
-          {b.email && <p>{b.email}</p>}
-          {b.phone && <p>{b.phone}</p>}
+          {(b.email || edit) && (
+            <p>
+              <Editable
+                edit={edit}
+                value={b.email ?? ""}
+                placeholder="Email"
+                ariaLabel="Business email"
+                onCommit={(v) => setBiz("email", v)}
+              />
+            </p>
+          )}
+          {(b.phone || edit) && (
+            <p>
+              <Editable
+                edit={edit}
+                value={b.phone ?? ""}
+                placeholder="Phone"
+                ariaLabel="Business phone"
+                onCommit={(v) => setBiz("phone", v)}
+              />
+            </p>
+          )}
           {b.website && <p>{b.website}</p>}
           {b.gstin && <p>GSTIN: {b.gstin}</p>}
           {b.taxId && <p>Tax ID: {b.taxId}</p>}
@@ -68,27 +181,79 @@ export function BusinessIdentity({ invoice, tone = "dark" }: DocProps & { tone?:
   );
 }
 
-export function InvoiceMetaBlock({ invoice, align = "right" }: DocProps & { align?: "left" | "right" }) {
+export function InvoiceMetaBlock({ invoice, edit, align = "right" }: DocProps & { align?: "left" | "right" }) {
   const m = invoice.invoice;
-  const L = (key: LabelKey) => labelFor(invoice, key);
-  const rows: [string, string | undefined][] = [
-    [L("invoiceNumber"), m.number],
-    [L("invoiceDate"), formatInvoiceDate(m.date, invoice.settings.dateFormat)],
-    ...(invoice.settings.showDueDate ? ([[L("dueDate"), formatInvoiceDate(m.dueDate, invoice.settings.dateFormat)]] as [string, string][]) : []),
-    ...(m.purchaseOrder ? ([[L("poNumber"), m.purchaseOrder]] as [string, string][]) : []),
-    ...(m.reference ? ([[L("reference"), m.reference]] as [string, string][]) : []),
+  const setMeta = (key: keyof Invoice["invoice"], next: string) =>
+    edit?.patch((inv) => ({ ...inv, invoice: { ...inv.invoice, [key]: next } }));
+
+  // Dates are shown formatted but edited raw, so the field stays a date input
+  // and the displayed format setting is not fighting the parser.
+  const rows: {
+    labelKey: LabelKey;
+    display: string;
+    raw: string;
+    field: keyof Invoice["invoice"];
+    show: boolean;
+  }[] = [
+    { labelKey: "invoiceNumber", display: m.number, raw: m.number, field: "number", show: true },
+    {
+      labelKey: "invoiceDate",
+      display: formatInvoiceDate(m.date, invoice.settings.dateFormat),
+      raw: m.date,
+      field: "date",
+      show: true,
+    },
+    {
+      labelKey: "dueDate",
+      display: formatInvoiceDate(m.dueDate, invoice.settings.dateFormat),
+      raw: m.dueDate ?? "",
+      field: "dueDate",
+      show: invoice.settings.showDueDate,
+    },
+    {
+      labelKey: "poNumber",
+      display: m.purchaseOrder ?? "",
+      raw: m.purchaseOrder ?? "",
+      field: "purchaseOrder",
+      show: Boolean(m.purchaseOrder) || Boolean(edit),
+    },
+    {
+      labelKey: "reference",
+      display: m.reference ?? "",
+      raw: m.reference ?? "",
+      field: "reference",
+      show: Boolean(m.reference) || Boolean(edit),
+    },
   ];
   return (
     <div className={align === "right" ? "text-right" : "text-left"}>
       <h1 className="text-2xl font-bold uppercase tracking-wide" style={{ color: "var(--doc-primary)" }}>
-        {m.documentTitle || "Invoice"}
+        <Editable
+          edit={edit}
+          value={m.documentTitle}
+          placeholder="Invoice"
+          ariaLabel="Document title"
+          onCommit={(v) => setMeta("documentTitle", v)}
+        />
       </h1>
       <dl className="mt-2 space-y-0.5 text-[12px] text-ink-600">
-        {rows.map(([label, value]) =>
-          value ? (
-            <div key={label} className={`flex gap-2 ${align === "right" ? "justify-end" : ""}`}>
-              <dt className="font-medium text-ink-500">{label}:</dt>
-              <dd className="text-ink-800">{value}</dd>
+        {rows.map((row) =>
+          row.show && (row.display || edit) ? (
+            <div key={row.labelKey} className={`flex gap-2 ${align === "right" ? "justify-end" : ""}`}>
+              <dt className="font-medium text-ink-500">
+                <EditableLabel edit={edit} invoice={invoice} labelKey={row.labelKey} />:
+              </dt>
+              <dd className="text-ink-800">
+                <Editable
+                  edit={edit}
+                  value={row.raw}
+                  display={row.display}
+                  dateInput={row.field === "date" || row.field === "dueDate"}
+                  ariaLabel={labelFor(invoice, row.labelKey)}
+                  placeholder="—"
+                  onCommit={(v) => setMeta(row.field, v)}
+                />
+              </dd>
             </div>
           ) : null,
         )}
@@ -97,17 +262,60 @@ export function InvoiceMetaBlock({ invoice, align = "right" }: DocProps & { alig
   );
 }
 
-export function PartiesBlock({ invoice }: DocProps) {
+export function PartiesBlock({ invoice, edit }: DocProps) {
   const c = invoice.customer;
+  const setCustomer = (key: keyof Invoice["customer"], next: string) =>
+    edit?.patch((inv) => ({ ...inv, customer: { ...inv.customer, [key]: next } }));
   return (
     <div className="grid grid-cols-2 gap-6">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">{labelFor(invoice, "billTo")}</p>
-        <p className="mt-1 text-[13px] font-semibold text-ink-900">{c.name || "Customer name"}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
+          <EditableLabel edit={edit} invoice={invoice} labelKey="billTo" />
+        </p>
+        <p className="mt-1 text-[13px] font-semibold text-ink-900">
+          <Editable
+            edit={edit}
+            value={c.name}
+            placeholder="Customer name"
+            ariaLabel="Customer name"
+            onCommit={(v) => setCustomer("name", v)}
+          />
+        </p>
         <div className="mt-0.5 text-[11.5px] leading-snug text-ink-600">
-          {c.company && <p>{c.company}</p>}
-          {c.billingAddress && <p className="whitespace-pre-line">{c.billingAddress}</p>}
-          {c.email && <p>{c.email}</p>}
+          {(c.company || edit) && (
+            <p>
+              <Editable
+                edit={edit}
+                value={c.company ?? ""}
+                placeholder="Company"
+                ariaLabel="Customer company"
+                onCommit={(v) => setCustomer("company", v)}
+              />
+            </p>
+          )}
+          {(c.billingAddress || edit) && (
+            <div className="whitespace-pre-line">
+              <Editable
+                edit={edit}
+                value={c.billingAddress ?? ""}
+                placeholder="Billing address"
+                ariaLabel="Billing address"
+                multiline
+                onCommit={(v) => setCustomer("billingAddress", v)}
+              />
+            </div>
+          )}
+          {(c.email || edit) && (
+            <p>
+              <Editable
+                edit={edit}
+                value={c.email ?? ""}
+                placeholder="Email"
+                ariaLabel="Customer email"
+                onCommit={(v) => setCustomer("email", v)}
+              />
+            </p>
+          )}
           {c.phone && <p>{c.phone}</p>}
           {c.gstin && <p>GSTIN: {c.gstin}</p>}
           {c.taxId && <p>Tax ID: {c.taxId}</p>}
@@ -115,10 +323,19 @@ export function PartiesBlock({ invoice }: DocProps) {
       </div>
       {invoice.settings.showShipping && c.shipToDifferentAddress && c.shippingAddress && (
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">{labelFor(invoice, "shipTo")}</p>
-          <p className="mt-1 whitespace-pre-line text-[11.5px] leading-snug text-ink-600">
-            {c.shippingAddress}
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
+            <EditableLabel edit={edit} invoice={invoice} labelKey="shipTo" />
           </p>
+          <div className="mt-1 whitespace-pre-line text-[11.5px] leading-snug text-ink-600">
+            <Editable
+              edit={edit}
+              value={c.shippingAddress ?? ""}
+              placeholder="Shipping address"
+              ariaLabel="Shipping address"
+              multiline
+              onCommit={(v) => setCustomer("shippingAddress", v)}
+            />
+          </div>
         </div>
       )}
     </div>
@@ -171,11 +388,16 @@ export function ItemImages({ images, settings }: { images: ItemImage[]; settings
 /* Items table                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export function ItemsTable({ invoice, totals }: DocProps) {
+export function ItemsTable({ invoice, totals, edit }: DocProps) {
   const { settings } = invoice;
+  const setItem = (id: string, key: keyof Invoice["items"][number], next: string | number) =>
+    edit?.patch((inv) => ({
+      ...inv,
+      items: inv.items.map((it) => (it.id === id ? { ...it, [key]: next } : it)),
+    }));
   const show = settings.showColumn;
   const cols = (
-    ["index", "image", "name", "sku", "hsn", "quantity", "unit", "rate", "discount", "tax", "amount"] as const
+    ["index", "image", "name", "description", "sku", "hsn", "quantity", "unit", "rate", "discount", "tax", "amount"] as const
   ).filter((c) => show[c]);
 
   const isRightAligned = (c: string) =>
@@ -205,7 +427,7 @@ export function ItemsTable({ invoice, totals }: DocProps) {
               className={`px-2.5 py-2 text-left font-semibold uppercase tracking-wide ${isRightAligned(c) ? "text-right" : ""}`}
               style={{ fontSize: Math.max(8, settings.tableFontSize - 1.5) }}
             >
-              {labelFor(invoice, c as LabelKey)}
+              <EditableLabel edit={edit} invoice={invoice} labelKey={c as LabelKey} />
             </th>
           ))}
         </tr>
@@ -231,27 +453,110 @@ export function ItemsTable({ invoice, totals }: DocProps) {
                 if (c === "name")
                   return (
                     <td key={c} className="px-2.5 py-2.5">
-                      <p className="font-medium text-ink-900">{item.name || "Untitled item"}</p>
-                      {item.description && (
-                        <p className="mt-0.5 whitespace-pre-line text-ink-500">{item.description}</p>
+                      <p className="font-medium text-ink-900">
+                        <Editable
+                          edit={edit}
+                          value={item.name}
+                          placeholder="Item name"
+                          ariaLabel={`Item ${i + 1} name`}
+                          onCommit={(v) => setItem(item.id, "name", v)}
+                        />
+                      </p>
+                      {/* When Description has no column of its own it sits under
+                          the item name, which is the conventional invoice style. */}
+                      {!show.description && (item.description || edit) && (
+                        <div className="mt-0.5 whitespace-pre-line text-ink-500">
+                          <Editable
+                            edit={edit}
+                            value={item.description ?? ""}
+                            placeholder="Description"
+                            ariaLabel={`Item ${i + 1} description`}
+                            multiline
+                            onCommit={(v) => setItem(item.id, "description", v)}
+                          />
+                        </div>
                       )}
                     </td>
                   );
-                if (c === "sku") return <td key={c} className="px-2.5 py-2.5 text-ink-600">{item.sku}</td>;
-                if (c === "hsn") return <td key={c} className="px-2.5 py-2.5 text-ink-600">{item.hsn}</td>;
+                if (c === "description")
+                  return (
+                    <td key={c} className="px-2.5 py-2.5 whitespace-pre-line text-ink-600">
+                      <Editable
+                        edit={edit}
+                        value={item.description ?? ""}
+                        placeholder="Description"
+                        ariaLabel={`Item ${i + 1} description`}
+                        multiline
+                        onCommit={(v) => setItem(item.id, "description", v)}
+                      />
+                    </td>
+                  );
+                if (c === "sku")
+                  return (
+                    <td key={c} className="px-2.5 py-2.5 text-ink-600">
+                      <Editable
+                        edit={edit}
+                        value={item.sku ?? ""}
+                        placeholder="SKU"
+                        ariaLabel={`Item ${i + 1} SKU`}
+                        onCommit={(v) => setItem(item.id, "sku", v)}
+                      />
+                    </td>
+                  );
+                if (c === "hsn")
+                  return (
+                    <td key={c} className="px-2.5 py-2.5 text-ink-600">
+                      <Editable
+                        edit={edit}
+                        value={item.hsn ?? ""}
+                        placeholder="HSN/SAC"
+                        ariaLabel={`Item ${i + 1} HSN or SAC code`}
+                        onCommit={(v) => setItem(item.id, "hsn", v)}
+                      />
+                    </td>
+                  );
                 if (c === "quantity")
                   return (
                     <td key={c} className="px-2.5 py-2.5 text-right text-ink-700">
                       {/* The unit is appended here only when it has no column of
                           its own, otherwise it would be printed twice. */}
-                      {item.quantity}
+                      <Editable
+                        edit={edit}
+                        value={String(item.quantity)}
+                        ariaLabel={`Item ${i + 1} quantity`}
+                        numeric
+                        className="text-right"
+                        onCommit={(v) => setItem(item.id, "quantity", Number(v) || 0)}
+                      />
                       {!show.unit && item.unit ? ` ${item.unit}` : ""}
                     </td>
                   );
                 if (c === "unit")
-                  return <td key={c} className="px-2.5 py-2.5 text-ink-600">{item.unit}</td>;
+                  return (
+                    <td key={c} className="px-2.5 py-2.5 text-ink-600">
+                      <Editable
+                        edit={edit}
+                        value={item.unit ?? ""}
+                        placeholder="unit"
+                        ariaLabel={`Item ${i + 1} unit`}
+                        onCommit={(v) => setItem(item.id, "unit", v)}
+                      />
+                    </td>
+                  );
                 if (c === "rate")
-                  return <td key={c} className="px-2.5 py-2.5 text-right text-ink-700">{money(invoice, item.rate)}</td>;
+                  return (
+                    <td key={c} className="px-2.5 py-2.5 text-right text-ink-700">
+                      <Editable
+                        edit={edit}
+                        value={String(item.rate)}
+                        display={money(invoice, item.rate)}
+                        ariaLabel={`Item ${i + 1} rate`}
+                        numeric
+                        className="text-right"
+                        onCommit={(v) => setItem(item.id, "rate", Number(v) || 0)}
+                      />
+                    </td>
+                  );
                 if (c === "discount")
                   return (
                     <td key={c} className="px-2.5 py-2.5 text-right text-ink-700">
@@ -284,7 +589,7 @@ export function ItemsTable({ invoice, totals }: DocProps) {
 /* Totals                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export function TotalsBlock({ invoice, totals }: DocProps) {
+export function TotalsBlock({ invoice, totals, edit }: DocProps) {
   const L = (key: LabelKey) => labelFor(invoice, key);
   const rows: [string, string, boolean?][] = [
     [L("subtotal"), money(invoice, totals.subtotal)],
@@ -310,6 +615,8 @@ export function TotalsBlock({ invoice, totals }: DocProps) {
       <dl className="space-y-1.5 text-[12px]">
         {rows.map(([label, value], i) => (
           <div key={`${label}-${i}`} className="flex justify-between text-ink-600">
+            {/* Only the fixed rows carry a renameable label; per-tax rows are
+                named by the tax itself, which is edited in the Tax panel. */}
             <dt>{label}</dt>
             <dd className="text-ink-800">{value}</dd>
           </div>
@@ -319,7 +626,9 @@ export function TotalsBlock({ invoice, totals }: DocProps) {
         className="mt-3 flex justify-between rounded-md px-3 py-2.5 text-[15px] font-bold text-white"
         style={{ backgroundColor: "var(--doc-primary)" }}
       >
-        <span>{L("total")}</span>
+        <span>
+          <EditableLabel edit={edit} invoice={invoice} labelKey="total" />
+        </span>
         <span>{money(invoice, totals.total)}</span>
       </div>
       {totals.amountInWords && (
@@ -335,14 +644,16 @@ export function TotalsBlock({ invoice, totals }: DocProps) {
 /* Footer: notes, terms, payment, signature, QR                               */
 /* -------------------------------------------------------------------------- */
 
-export function PaymentBlock({ invoice }: DocProps) {
+export function PaymentBlock({ invoice, edit }: DocProps) {
   const p = invoice.payment;
   if (!invoice.settings.showPaymentDetails) return null;
   const hasBank = invoice.settings.showBankDetails && (p.bankName || p.accountNumber || p.iban || p.swift);
   if (!hasBank && !p.upiId && !p.paymentLink && !p.instructions) return null;
   return (
     <div className="text-[11px] text-ink-600">
-      <p className="font-semibold uppercase tracking-wide text-ink-500">{labelFor(invoice, "paymentDetails")}</p>
+      <p className="font-semibold uppercase tracking-wide text-ink-500">
+        <EditableLabel edit={edit} invoice={invoice} labelKey="paymentDetails" />
+      </p>
       <div className="mt-1 space-y-0.5">
         {hasBank && (
           <>
@@ -363,20 +674,44 @@ export function PaymentBlock({ invoice }: DocProps) {
   );
 }
 
-export function NotesTermsBlock({ invoice }: DocProps) {
+export function NotesTermsBlock({ invoice, edit }: DocProps) {
   if (!invoice.settings.showNotes && !invoice.settings.showTerms) return null;
+  const setField = (key: "notes" | "terms", next: string) =>
+    edit?.patch((inv) => ({ ...inv, [key]: next }));
   return (
     <div className="space-y-3 text-[11px] text-ink-600">
-      {invoice.settings.showNotes && invoice.notes && (
+      {invoice.settings.showNotes && (invoice.notes || edit) && (
         <div>
-          <p className="font-semibold uppercase tracking-wide text-ink-500">{labelFor(invoice, "notes")}</p>
-          <p className="mt-1 whitespace-pre-line">{invoice.notes}</p>
+          <p className="font-semibold uppercase tracking-wide text-ink-500">
+            <EditableLabel edit={edit} invoice={invoice} labelKey="notes" />
+          </p>
+          <div className="mt-1 whitespace-pre-line">
+            <Editable
+              edit={edit}
+              value={invoice.notes ?? ""}
+              placeholder="Notes"
+              ariaLabel="Invoice notes"
+              multiline
+              onCommit={(v) => setField("notes", v)}
+            />
+          </div>
         </div>
       )}
-      {invoice.settings.showTerms && invoice.terms && (
+      {invoice.settings.showTerms && (invoice.terms || edit) && (
         <div>
-          <p className="font-semibold uppercase tracking-wide text-ink-500">{labelFor(invoice, "terms")}</p>
-          <p className="mt-1 whitespace-pre-line">{invoice.terms}</p>
+          <p className="font-semibold uppercase tracking-wide text-ink-500">
+            <EditableLabel edit={edit} invoice={invoice} labelKey="terms" />
+          </p>
+          <div className="mt-1 whitespace-pre-line">
+            <Editable
+              edit={edit}
+              value={invoice.terms ?? ""}
+              placeholder="Terms & conditions"
+              ariaLabel="Invoice terms"
+              multiline
+              onCommit={(v) => setField("terms", v)}
+            />
+          </div>
         </div>
       )}
     </div>

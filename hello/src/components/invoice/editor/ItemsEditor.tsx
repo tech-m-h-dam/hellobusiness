@@ -18,6 +18,7 @@ import { useInvoiceEditor } from "@/stores/invoice-editor";
 import { createLineItem, makeId } from "@/lib/invoice/defaults";
 import { formatMoney } from "@/lib/invoice/money";
 import { track } from "@/lib/analytics/track";
+import { useT } from "@/lib/i18n/use-locale";
 import { ItemImageManager } from "./ItemImageManager";
 import type { InvoiceItem } from "@/lib/invoice/types";
 
@@ -250,6 +251,7 @@ function ItemRow({ item, index, total }: { item: InvoiceItem; index: number; tot
 
 export function ItemsEditor() {
   const items = useInvoiceEditor((s) => s.invoice.items);
+  const t = useT();
   const update = useInvoiceEditor((s) => s.update);
 
   return (
@@ -268,7 +270,7 @@ export function ItemsEditor() {
           track("item_added");
         }}
       >
-        <Plus /> Add line item
+        <Plus /> {t("addLineItem")}
       </Button>
     </div>
   );

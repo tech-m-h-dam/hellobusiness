@@ -44,7 +44,7 @@ function money(invoice: Invoice, amount: number) {
 function visibleColumns(invoice: Invoice) {
   const show = invoice.settings.showColumn;
   return (
-    ["index", "image", "name", "sku", "hsn", "quantity", "unit", "rate", "discount", "tax", "amount"] as const
+    ["index", "image", "name", "description", "sku", "hsn", "quantity", "unit", "rate", "discount", "tax", "amount"] as const
   ).filter((c) => show[c]);
 }
 
@@ -53,6 +53,7 @@ const COLUMN_FLEX: Record<string, number> = {
   index: 0.4,
   image: 1.1,
   name: 3.4,
+  description: 3,
   sku: 1,
   hsn: 1,
   quantity: 0.8,
@@ -343,12 +344,20 @@ function ItemsTablePdf({ invoice, totals, styles }: { invoice: Invoice; totals: 
                     <Text style={[styles.tableCell, { paddingHorizontal: 0, fontWeight: 700 }]}>
                       {item.name || "Untitled item"}
                     </Text>
-                    {item.description ? (
+                    {/* Only shown here when Description has no column of its own. */}
+                    {!invoice.settings.showColumn.description && item.description ? (
                       <Text style={[styles.tableCell, styles.muted, { paddingHorizontal: 0 }]}>
                         {item.description}
                       </Text>
                     ) : null}
                   </View>
+                );
+              }
+              if (c === "description") {
+                return (
+                  <Text key={c} style={[styles.tableCell, styles.muted, { flex: COLUMN_FLEX[c] }]}>
+                    {item.description ?? ""}
+                  </Text>
                 );
               }
               const value =

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useInvoiceEditor } from "@/stores/invoice-editor";
 import { track } from "@/lib/analytics/track";
+import { useT } from "@/lib/i18n/use-locale";
 
 type Busy = null | "pdf" | "docx";
 
@@ -45,6 +46,7 @@ export function DownloadButton({ onDownloaded }: { onDownloaded?: () => void }) 
   const saveToHistory = useInvoiceEditor((s) => s.saveToHistory);
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<string | null>(null);
+  const t = useT();
 
   async function downloadPdf() {
     setBusy("pdf");
@@ -101,14 +103,14 @@ export function DownloadButton({ onDownloaded }: { onDownloaded?: () => void }) 
             className="flex-1 rounded-r-none"
           >
             {busy === "pdf" ? <Loader2 className="animate-spin" /> : <Download />}
-            {busy === "pdf" ? "Preparing…" : "Download PDF"}
+            {busy === "pdf" ? t("preparing") : t("downloadPdf")}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 type="button"
                 disabled={busy !== null}
-                aria-label="More download formats"
+                aria-label={t("moreFormats")}
                 className="rounded-l-none border-l border-brand-500 px-2"
               >
                 <ChevronDown />
@@ -116,10 +118,10 @@ export function DownloadButton({ onDownloaded }: { onDownloaded?: () => void }) 
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onSelect={() => void downloadPdf()}>
-                <Download className="mr-2 size-4" /> Download PDF
+                <Download className="mr-2 size-4" /> {t("downloadPdf")}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => void downloadDocx()}>
-                <FileText className="mr-2 size-4" /> Download Word (.docx)
+                <FileText className="mr-2 size-4" /> {t("downloadWord")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -132,10 +134,10 @@ export function DownloadButton({ onDownloaded }: { onDownloaded?: () => void }) 
             track("invoice_printed");
             window.print();
           }}
-          aria-label="Print invoice"
+          aria-label={t("print")}
         >
           <Printer />
-          <span className="hidden sm:inline">Print</span>
+          <span className="hidden sm:inline">{t("print")}</span>
         </Button>
       </div>
 

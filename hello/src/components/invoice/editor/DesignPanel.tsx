@@ -29,6 +29,7 @@ import type { ColumnKey, InvoiceSettings } from "@/lib/invoice/types";
 const COLUMN_TOGGLES: { key: ColumnKey; label: string }[] = [
   { key: "index", label: "Row number" },
   { key: "image", label: "Item images" },
+  { key: "description", label: "Description (own column)" },
   { key: "sku", label: "SKU" },
   { key: "hsn", label: "HSN/SAC" },
   { key: "quantity", label: "Quantity" },

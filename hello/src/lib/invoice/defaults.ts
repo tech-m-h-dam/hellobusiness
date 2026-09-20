@@ -128,7 +128,10 @@ const ALL_COLUMNS: ColumnKey[] = [
 export function defaultColumnVisibility(): Record<ColumnKey, boolean> {
   return ALL_COLUMNS.reduce(
     (acc, key) => {
-      acc[key] = !["sku", "hsn", "image", "discount"].includes(key);
+      // `description` defaults off: descriptions render under the item name,
+      // the conventional invoice style. Turning the column on moves them into
+      // a labelled column of their own.
+      acc[key] = !["sku", "hsn", "image", "discount", "description"].includes(key);
       return acc;
     },
     {} as Record<ColumnKey, boolean>,

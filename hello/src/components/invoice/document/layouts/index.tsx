@@ -105,15 +105,10 @@ export function SidebarLayout(props: DocProps) {
       >
         <BusinessIdentity {...props} tone="light" />
         <div className="mt-6 space-y-4 text-[11px] text-white/85">
-          <div>
-            <p className="font-semibold uppercase tracking-wide text-white/60">Bill To</p>
-            <p className="mt-1 font-semibold text-white">{invoice.customer.name || "Customer name"}</p>
-            {invoice.customer.company && <p>{invoice.customer.company}</p>}
-            {invoice.customer.billingAddress && (
-              <p className="whitespace-pre-line">{invoice.customer.billingAddress}</p>
-            )}
-            {invoice.customer.email && <p>{invoice.customer.email}</p>}
-            {invoice.customer.gstin && <p>GSTIN: {invoice.customer.gstin}</p>}
+          {/* Reuses the shared parties block so inline editing works here too;
+              the sidebar's own colours are applied by the wrapper. */}
+          <div className="[&_*]:!text-white [&_p.uppercase]:!text-white/60 [&>div]:!grid-cols-1">
+            <PartiesBlock {...props} />
           </div>
           {invoice.settings.showPaymentDetails && (
             <div className="border-t border-white/20 pt-3 [&_*]:!text-white/85 [&_p.font-semibold]:!text-white/60">

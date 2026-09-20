@@ -50,6 +50,8 @@ export type CustomTemplate = {
   name: string;
   baseTemplateId: string;
   settings: Invoice["settings"];
+  /** Renamed document wording, saved alongside the styling. */
+  labels: NonNullable<Invoice["labels"]>;
   createdAt: string;
   updatedAt: string;
 };

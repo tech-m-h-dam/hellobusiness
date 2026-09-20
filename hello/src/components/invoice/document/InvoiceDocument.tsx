@@ -11,6 +11,7 @@
  */
 import { getTemplate } from "@/lib/invoice/templates";
 import type { ComputedTotals, Invoice } from "@/lib/invoice/types";
+import type { InlineEdit } from "@/lib/invoice/inline-edit";
 import { webFontStack } from "./fonts";
 import { LAYOUTS } from "./layouts";
 
@@ -26,11 +27,14 @@ export function InvoiceDocument({
   /** Scale the sheet down to fit a preview column without changing its geometry. */
   scale = 1,
   className,
+  edit,
 }: {
   invoice: Invoice;
   totals: ComputedTotals;
   scale?: number;
   className?: string;
+  /** Passed only by the live editor; absent everywhere else (see inline-edit.ts). */
+  edit?: InlineEdit;
 }) {
   const template = getTemplate(invoice.templateId);
   const Layout = LAYOUTS[template.layout] ?? LAYOUTS.classic;
@@ -66,7 +70,7 @@ export function InvoiceDocument({
         overflow: "hidden",
       }}
     >
-      <Layout invoice={invoice} totals={totals} />
+      <Layout invoice={invoice} totals={totals} edit={edit} />
     </div>
   );
 }

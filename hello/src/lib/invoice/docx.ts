@@ -183,7 +183,7 @@ export function buildInvoiceDocx(invoice: Invoice, totals: ComputedTotals): Docu
 
   /* --- Items table ------------------------------------------------------ */
   const cols = (
-    ["index", "name", "sku", "hsn", "quantity", "unit", "rate", "discount", "tax", "amount"] as const
+    ["index", "name", "description", "sku", "hsn", "quantity", "unit", "rate", "discount", "tax", "amount"] as const
   ).filter((c) => s.showColumn[c]);
 
   const headerRow = new TableRow({
@@ -199,7 +199,9 @@ export function buildInvoiceDocx(invoice: Invoice, totals: ComputedTotals): Docu
       children: cols.map((c) => {
         if (c === "name") {
           const paras = [para(item.name || "Untitled item", { bold: true, size: 9 })];
-          if (item.description) paras.push(para(item.description, { size: 8, color: "666666" }));
+          // Only under the name when Description has no column of its own.
+          if (!s.showColumn.description && item.description)
+            paras.push(para(item.description, { size: 8, color: "666666" }));
           // Item images are embedded directly beneath the item name.
           for (const img of item.images) {
             const bytes = dataUrlToBytes(img.src);
@@ -226,7 +228,9 @@ export function buildInvoiceDocx(invoice: Invoice, totals: ComputedTotals): Docu
         const value =
           c === "index"
             ? String(i + 1)
-            : c === "sku"
+            : c === "description"
+              ? (item.description ?? "")
+              : c === "sku"
               ? (item.sku ?? "")
               : c === "hsn"
                 ? (item.hsn ?? "")

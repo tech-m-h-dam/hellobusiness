@@ -27,6 +27,8 @@ import { DesignPanel } from "./editor/DesignPanel";
 import { InvoicePreview } from "./InvoicePreview";
 import { DownloadButton } from "./DownloadButton";
 import { SaveToAccountPrompt } from "./SaveToAccountPrompt";
+import { SaveTemplateDialog } from "./editor/SaveTemplateDialog";
+import { useT } from "@/lib/i18n/use-locale";
 
 type Props = {
   /** Pre-applied template for type-specific landing pages (e.g. the GST page). */
@@ -51,6 +53,7 @@ export function InvoiceEditor({ initialTemplateId, initialSettings, authAvailabl
   const [mobileView, setMobileView] = useState<"edit" | "preview">("edit");
   // Only ever shown after a successful download, and dismissible for the session.
   const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const t = useT();
 
   // Restore the in-progress draft, then apply any page-specific defaults.
   useEffect(() => {
@@ -81,24 +84,24 @@ export function InvoiceEditor({ initialTemplateId, initialSettings, authAvailabl
     <div className="space-y-4">
       <Tabs defaultValue="details">
         <TabsList className="w-full overflow-x-auto">
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="items">Items</TabsTrigger>
-          <TabsTrigger value="tax">Tax</TabsTrigger>
-          <TabsTrigger value="payment">Payment</TabsTrigger>
-          <TabsTrigger value="design">Design</TabsTrigger>
+          <TabsTrigger value="details">{t("tabDetails")}</TabsTrigger>
+          <TabsTrigger value="items">{t("tabItems")}</TabsTrigger>
+          <TabsTrigger value="tax">{t("tabTax")}</TabsTrigger>
+          <TabsTrigger value="payment">{t("tabPayment")}</TabsTrigger>
+          <TabsTrigger value="design">{t("tabDesign")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="details" className="space-y-6">
           <section>
-            <h2 className="mb-3 text-sm font-semibold text-ink-900">Your business</h2>
+            <h2 className="mb-3 text-sm font-semibold text-ink-900">{t("yourBusiness")}</h2>
             <BusinessForm />
           </section>
           <section>
-            <h2 className="mb-3 text-sm font-semibold text-ink-900">Bill to</h2>
+            <h2 className="mb-3 text-sm font-semibold text-ink-900">{t("billTo")}</h2>
             <CustomerForm />
           </section>
           <section>
-            <h2 className="mb-3 text-sm font-semibold text-ink-900">Invoice details</h2>
+            <h2 className="mb-3 text-sm font-semibold text-ink-900">{t("invoiceDetails")}</h2>
             <InvoiceDetailsForm />
           </section>
         </TabsContent>
@@ -125,32 +128,42 @@ export function InvoiceEditor({ initialTemplateId, initialSettings, authAvailabl
   return (
     <div className="w-full">
       {/* Toolbar ----------------------------------------------------------- */}
+      {/*
+       * Stacks on small screens rather than wrapping. At phone width the
+       * secondary controls and a fixed-width download block could not share a
+       * row: the row overflowed horizontally, which pushed the language and
+       * template pickers partly off-screen and left their dropdowns
+       * unreachable. Rows here, columns from `sm` up.
+       */}
       <div
         data-print="hide"
-        className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-200 bg-white p-3"
+        className="mb-4 flex flex-col gap-3 rounded-xl border border-ink-200 bg-white p-3 lg:flex-row lg:items-center lg:justify-between"
       >
         <div className="flex items-center gap-2 text-sm text-ink-600">
-          <FileText className="size-4 text-brand-600" />
-          <span className="font-medium text-ink-900">Your invoice</span>
+          <FileText className="size-4 shrink-0 text-brand-600" />
+          <span className="font-medium text-ink-900">{t("yourInvoice")}</span>
           <span aria-live="polite" className="text-[12px] text-ink-500">
-            {saving ? "Saving…" : lastSavedAt ? "Saved in this browser" : "Not saved yet"}
+            {saving ? t("saving") : lastSavedAt ? t("savedLocally") : t("notSavedYet")}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (confirm("Start a new invoice? Your current draft in this browser will be cleared.")) {
-                reset();
-              }
-            }}
-          >
-            <RotateCcw /> New
-          </Button>
-          <div className="w-56">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:justify-end">
+          <div className="flex flex-wrap items-center gap-2">
+            <SaveTemplateDialog />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (confirm("Start a new invoice? Your current draft in this browser will be cleared.")) {
+                  reset();
+                }
+              }}
+            >
+              <RotateCcw /> {t("newInvoice")}
+            </Button>
+          </div>
+          <div className="w-full sm:w-56 sm:shrink-0">
             <DownloadButton onDownloaded={() => setShowSavePrompt(authAvailable)} />
           </div>
         </div>
@@ -172,7 +185,7 @@ export function InvoiceEditor({ initialTemplateId, initialSettings, authAvailabl
           onClick={() => setMobileView("edit")}
           aria-pressed={mobileView === "edit"}
         >
-          <Pencil /> Edit
+          <Pencil /> {t("edit")}
         </Button>
         <Button
           type="button"
@@ -182,13 +195,19 @@ export function InvoiceEditor({ initialTemplateId, initialSettings, authAvailabl
           onClick={() => setMobileView("preview")}
           aria-pressed={mobileView === "preview"}
         >
-          <Eye /> Preview
+          <Eye /> {t("preview")}
         </Button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div // Editor 60 / preview 40, so the document is comfortably readable without
+        // squeezing the form it is being filled in from.
+        className="grid gap-6 lg:grid-cols-[minmax(0,6fr)_minmax(0,4fr)]">
         <div
           data-print="hide"
+          // Stable hook for tests: the document now exposes click-to-edit
+          // controls with the same accessible names as these form fields, so
+          // assertions need a way to say which of the two they mean.
+          data-editor-panel
           className={`rounded-xl border border-ink-200 bg-white p-4 ${mobileView === "edit" ? "" : "hidden lg:block"}`}
         >
           {editorPanel}
