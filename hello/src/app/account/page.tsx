@@ -7,6 +7,7 @@ import { googleConfigured } from "@/lib/auth/status";
 import { prisma } from "@/lib/db/client";
 import { SignInButton } from "@/components/layout/SignInButton";
 import { AccountInvoiceList } from "@/components/invoice/AccountInvoiceList";
+import { SavedTemplateList } from "@/components/invoice/SavedTemplateList";
 
 /**
  * Profile: who you are signed in as, and the invoices saved to the account.
@@ -151,6 +152,15 @@ export default async function AccountPage() {
             updatedAt: i.updatedAt.toISOString(),
           }))}
         />
+      </div>
+
+      {/* Templates --------------------------------------------------------- */}
+      <h2 className="mt-12 text-xl font-bold tracking-tight text-ink-900">Saved templates</h2>
+      <p className="mt-1 text-[14px] text-ink-600">
+        Your saved looks — colours, fonts, layout, labels and tax setup. Kept in this browser.
+      </p>
+      <div className="mt-5">
+        <SavedTemplateList />
       </div>
     </section>
   );

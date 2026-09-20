@@ -1,0 +1,17 @@
+import { chromium } from "@playwright/test";
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1440, height: 950 } });
+await p.goto("http://localhost:3100/invoice-generator", { waitUntil: "networkidle" });
+await p.waitForTimeout(900);
+console.log("tour visible:", await p.getByRole("dialog").isVisible().catch(() => false));
+console.log("step 1:", (await p.locator("#tour-title").textContent().catch(()=>"")) );
+await p.screenshot({ path: "tour1.png" });
+await p.getByRole("button", { name: "Next" }).click();
+await p.waitForTimeout(600);
+console.log("step 2:", await p.locator("#tour-title").textContent());
+await p.screenshot({ path: "tour2.png" });
+await p.getByRole("button", { name: "Next" }).click();
+await p.waitForTimeout(600);
+console.log("step 3:", await p.locator("#tour-title").textContent());
+await p.screenshot({ path: "tour3.png" });
+await b.close();

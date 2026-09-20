@@ -91,19 +91,21 @@ export function DownloadButton({ onDownloaded }: { onDownloaded?: () => void }) 
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex gap-2">
+    <div className="flex w-full flex-col gap-2">
+      <div className="flex w-full gap-2">
         {/* Primary action stays a single click; Word sits behind the caret so
-            the common case is never a two-step interaction. */}
-        <div className="flex flex-1">
+            the common case is never a two-step interaction.
+            `min-w-0` lets this group shrink instead of pushing Print out of the
+            toolbar — without it the row overflows and forces page scroll. */}
+        <div className="flex min-w-0 flex-1">
           <Button
             type="button"
             onClick={downloadPdf}
             disabled={busy !== null}
-            className="flex-1 rounded-r-none"
+            className="min-w-0 flex-1 rounded-r-none"
           >
             {busy === "pdf" ? <Loader2 className="animate-spin" /> : <Download />}
-            {busy === "pdf" ? t("preparing") : t("downloadPdf")}
+            <span className="truncate">{busy === "pdf" ? t("preparing") : t("downloadPdf")}</span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -111,7 +113,7 @@ export function DownloadButton({ onDownloaded }: { onDownloaded?: () => void }) 
                 type="button"
                 disabled={busy !== null}
                 aria-label={t("moreFormats")}
-                className="rounded-l-none border-l border-brand-500 px-2"
+                className="shrink-0 rounded-l-none border-l border-brand-500 px-2"
               >
                 <ChevronDown />
               </Button>
@@ -130,6 +132,7 @@ export function DownloadButton({ onDownloaded }: { onDownloaded?: () => void }) 
         <Button
           type="button"
           variant="secondary"
+          className="shrink-0"
           onClick={() => {
             track("invoice_printed");
             window.print();

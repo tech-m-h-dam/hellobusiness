@@ -69,6 +69,7 @@ const en = {
   navGuides: "Guides",
   navBlog: "Blog",
   navCreateInvoice: "Create Free Invoice",
+  navCreateShort: "New invoice",
 
   // Common
   language: "Language",
@@ -107,6 +108,7 @@ const hi: Partial<Record<MessageKey, string>> = {
   navGuides: "मार्गदर्शिकाएँ",
   navBlog: "ब्लॉग",
   navCreateInvoice: "निःशुल्क चालान बनाएँ",
+  navCreateShort: "नया चालान",
 };
 
 const de: Partial<Record<MessageKey, string>> = {
@@ -140,6 +142,7 @@ const de: Partial<Record<MessageKey, string>> = {
   navGuides: "Anleitungen",
   navBlog: "Blog",
   navCreateInvoice: "Kostenlose Rechnung erstellen",
+  navCreateShort: "Neue Rechnung",
 };
 
 const fr: Partial<Record<MessageKey, string>> = {
@@ -173,6 +176,7 @@ const fr: Partial<Record<MessageKey, string>> = {
   navGuides: "Guides",
   navBlog: "Blog",
   navCreateInvoice: "Créer une facture gratuite",
+  navCreateShort: "Nouvelle facture",
 };
 
 const es: Partial<Record<MessageKey, string>> = {
@@ -206,6 +210,7 @@ const es: Partial<Record<MessageKey, string>> = {
   navGuides: "Guías",
   navBlog: "Blog",
   navCreateInvoice: "Crear factura gratis",
+  navCreateShort: "Nueva factura",
 };
 
 const MESSAGES: Record<AppLocale, Partial<Record<MessageKey, string>>> = { en, hi, de, fr, es };

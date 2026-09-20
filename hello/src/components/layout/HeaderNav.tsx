@@ -28,7 +28,7 @@ export function HeaderNav({ signedIn = false }: { signedIn?: boolean }) {
   const t = useT();
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex min-w-0 items-center gap-2 sm:gap-3">
       <nav aria-label="Main" className="hidden items-center gap-6 md:flex">
         {NAV.map((item) => (
           <Link
@@ -53,11 +53,14 @@ export function HeaderNav({ signedIn = false }: { signedIn?: boolean }) {
         </Link>
       )}
 
+      {/* The full call to action is long in every language; on small screens a
+          short label keeps the header on one line without horizontal scroll. */}
       <Link
         href="/invoice-generator"
-        className="inline-flex h-9 items-center whitespace-nowrap rounded-lg bg-brand-600 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-700"
+        className="inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-lg bg-brand-600 px-3 text-[13px] font-medium text-white transition-colors hover:bg-brand-700 sm:px-4 sm:text-sm"
       >
-        {t("navCreateInvoice")}
+        <span className="lg:hidden">{t("navCreateShort")}</span>
+        <span className="hidden lg:inline">{t("navCreateInvoice")}</span>
       </Link>
     </div>
   );

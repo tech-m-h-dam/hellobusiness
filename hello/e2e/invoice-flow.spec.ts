@@ -18,6 +18,21 @@ function form(page: Page) {
   return page.locator("[data-editor-panel]");
 }
 
+/**
+ * The first-run tour opens over the editor in a fresh browser context, which
+ * would intercept clicks in every other test. Mark it as already seen before
+ * the page loads; the tour has its own test.
+ */
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(() => {
+    try {
+      window.localStorage.setItem("tour-seen-v1", "1");
+    } catch {
+      /* ignore */
+    }
+  });
+});
+
 async function showPreview(page: Page, isMobile: boolean | undefined) {
   if (isMobile) await page.getByRole("button", { name: "Preview" }).click();
   return page.locator('[data-print="area"]');
@@ -96,7 +111,9 @@ test("switching template preserves all entered data", async ({ page, isMobile })
   await form(page).getByLabel("Item 1 name").fill("Retained item");
 
   await page.getByRole("tab", { name: "Design" }).click();
-  await page.getByRole("button", { name: /Corporate/ }).click();
+  // Templates are a dropdown now, not a thumbnail grid.
+  await form(page).getByLabel("Template").click();
+  await page.getByRole("option", { name: /Corporate/ }).click();
 
   const preview = await showPreview(page, isMobile);
   await expect(preview.getByText("Persistent Co").first()).toBeVisible();
@@ -459,8 +476,11 @@ test("language is switched from the navbar and applies across the app", async ({
   await page.getByLabel("Language").click();
   await page.getByRole("option", { name: "Français" }).click();
 
-  // The CTA is visible at every width; the nav links collapse on phones.
-  await expect(page.getByRole("link", { name: /Créer une facture/ })).toBeVisible();
+  // The CTA shows a short label below `lg` so the header fits without
+  // horizontal scroll; the nav links collapse on phones entirely.
+  await expect(
+    page.getByRole("link", { name: isMobile ? /Nouvelle facture/ : /Créer une facture/ }),
+  ).toBeVisible();
   if (!isMobile) {
     await expect(page.getByRole("link", { name: "Modèles" })).toBeVisible();
   }
@@ -559,4 +579,85 @@ test("a saved template carries the tax setup and remaps existing lines", async (
   const taxNames = form(page).getByLabel("Tax name");
   await expect(taxNames.nth(0)).toHaveValue("CGST");
   await expect(taxNames.nth(1)).toHaveValue("SGST");
+});
+
+test.describe("first-run tour", () => {
+  // These need the tour, so undo the suite-wide dismissal.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("runs through its steps and does not come back", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.goto("/invoice-generator");
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(page.locator("#tour-title")).toHaveText(/quick tour/i);
+
+    await page.getByRole("button", { name: "Next" }).click();
+    await expect(page.locator("#tour-title")).toHaveText("Fill in your invoice here");
+
+    await page.getByRole("button", { name: "Back" }).click();
+    await expect(page.locator("#tour-title")).toHaveText(/quick tour/i);
+
+    // Skip, and confirm it stays dismissed across a reload.
+    await page.getByRole("button", { name: "Skip the tour" }).first().click();
+    await expect(dialog).toBeHidden();
+
+    await page.reload();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await context.close();
+  });
+});
+
+test("clients can be saved and reused", async ({ page }) => {
+  await page.goto("/invoice-generator");
+
+  await form(page).getByLabel("Customer name").fill("Ada Lovelace");
+  await form(page).getByLabel("Company").fill("Analytical Engines Ltd");
+  await page.getByRole("button", { name: "Save client" }).click();
+  await expect(page.getByRole("button", { name: "Saved" })).toBeVisible();
+
+  // Clear the customer, then bring them back from the saved list.
+  await form(page).getByLabel("Customer name").fill("");
+  await form(page).getByLabel("Company").fill("");
+
+  await page.getByRole("button", { name: /Saved clients/ }).click();
+  await page.getByRole("menuitem", { name: /Ada Lovelace/ }).click();
+
+  await expect(form(page).getByLabel("Customer name")).toHaveValue("Ada Lovelace");
+  await expect(form(page).getByLabel("Company")).toHaveValue("Analytical Engines Ltd");
+});
+
+test("templates are chosen from a dropdown", async ({ page, isMobile }) => {
+  await page.goto("/invoice-generator");
+  await page.getByRole("tab", { name: "Design" }).click();
+
+  await form(page).getByLabel("Template").click();
+  await page.getByRole("option", { name: /Corporate/ }).click();
+
+  // Assert on the panel before revealing the preview: on mobile the two swap,
+  // so the panel is hidden once the document is showing.
+  await expect(form(page).getByLabel("Template")).toContainText("Corporate");
+  // Column visibility now sits directly under the template, not below the
+  // colour/type/page controls.
+  await expect(form(page).getByText("Columns on the invoice")).toBeVisible();
+
+  const doc = await showPreview(page, isMobile);
+  await expect(doc).toBeVisible();
+});
+
+test("no horizontal scroll at any width", async ({ page }) => {
+  // The Print button used to overflow the toolbar and force page scroll.
+  for (const width of [390, 768, 1024, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/invoice-generator");
+    await page.waitForTimeout(300);
+
+    const overflows = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    );
+    expect(overflows, `horizontal scroll at ${width}px`).toBe(false);
+  }
 });

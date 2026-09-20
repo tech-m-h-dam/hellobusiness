@@ -8,7 +8,6 @@
  * items, taxes and every other field are untouched, so users can try templates
  * freely without losing work (spec section 15).
  */
-import { Check } from "lucide-react";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { useInvoiceEditor } from "@/stores/invoice-editor";
 import { LabelsPanel } from "./LabelsPanel";
-import { TEMPLATES, applyTemplatePreset } from "@/lib/invoice/templates";
+import { TEMPLATES, applyTemplatePreset, getTemplate } from "@/lib/invoice/templates";
 import { track } from "@/lib/analytics/track";
 import type { ColumnKey, InvoiceSettings } from "@/lib/invoice/types";
 
@@ -53,6 +52,8 @@ export function DesignPanel() {
   const settings = useInvoiceEditor((s) => s.invoice.settings);
   const update = useInvoiceEditor((s) => s.update);
 
+  const activeTemplate = getTemplate(templateId);
+
   const setSetting = <K extends keyof InvoiceSettings>(key: K, value: InvoiceSettings[K]) =>
     update((inv) => ({ ...inv, settings: { ...inv.settings, [key]: value } }));
 
@@ -67,46 +68,74 @@ export function DesignPanel() {
 
   return (
     <div className="space-y-6">
-      {/* Template gallery -------------------------------------------------- */}
+      {/* Template ---------------------------------------------------------- */}
       <section>
-        <h3 className="mb-2 text-[13px] font-semibold text-ink-800">Template</h3>
-        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {TEMPLATES.map((t) => {
-            const active = t.id === templateId;
-            return (
-              <li key={t.id}>
-                <button
-                  type="button"
-                  onClick={() => selectTemplate(t.id)}
-                  aria-pressed={active}
-                  className={`w-full rounded-lg border p-2 text-left transition-all ${
-                    active
-                      ? "border-brand-600 ring-2 ring-brand-600/20"
-                      : "border-ink-200 hover:border-ink-300"
-                  }`}
-                >
-                  {/* Miniature of the layout, drawn from the preset's own colours. */}
-                  <span
-                    className="mb-1.5 flex h-12 w-full flex-col justify-between overflow-hidden rounded"
-                    style={{ backgroundColor: "#fff", border: "1px solid #e2e8f0" }}
-                    aria-hidden="true"
-                  >
-                    <span className="block h-3 w-full" style={{ backgroundColor: t.settings.primaryColor }} />
-                    <span className="flex flex-col gap-0.5 px-1 pb-1">
-                      <span className="block h-0.5 w-3/4 rounded bg-ink-200" />
-                      <span className="block h-0.5 w-full rounded bg-ink-100" />
-                      <span className="block h-0.5 w-1/2 rounded bg-ink-100" />
-                    </span>
+        <Field
+          label="Template"
+          htmlFor="template-select"
+          hint={`${TEMPLATES.length} templates — switching never changes what you've typed`}
+        >
+          {/*
+           * A dropdown rather than a thumbnail grid: the grid pushed everything
+           * else in this panel below the fold, and the preview beside it already
+           * shows what the template looks like the moment it is chosen.
+           */}
+          <Select value={templateId} onValueChange={selectTemplate}>
+            <SelectTrigger id="template-select" className="h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-80">
+              {TEMPLATES.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="size-3 shrink-0 rounded-full"
+                      style={{ backgroundColor: t.settings.primaryColor }}
+                      aria-hidden="true"
+                    />
+                    <span>{t.name}</span>
+                    <span className="text-[11px] text-ink-400">{t.category}</span>
                   </span>
-                  <span className="flex items-center justify-between gap-1">
-                    <span className="truncate text-[12px] font-medium text-ink-800">{t.name}</span>
-                    {active && <Check className="size-3.5 shrink-0 text-brand-600" />}
-                  </span>
-                  <span className="block text-[10.5px] text-ink-500">{t.category}</span>
-                </button>
-              </li>
-            );
-          })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <p className="mt-1.5 text-[12px] text-ink-500">{activeTemplate.description}</p>
+      </section>
+
+      {/* Visibility — kept high in the panel: which columns and sections
+          appear is the setting people reach for most, and it used to sit
+          below the colour, type and page controls. */}
+      <section className="space-y-2">
+        <h3 className="text-[13px] font-semibold text-ink-900">Columns on the invoice</h3>
+        <ul className="grid gap-1 sm:grid-cols-2">
+          {COLUMN_TOGGLES.map(({ key, label }) => (
+            <li key={key} className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-ink-50">
+              <Label htmlFor={`col-${key}`} className="cursor-pointer">{label}</Label>
+              <Switch
+                id={`col-${key}`}
+                checked={settings.showColumn[key]}
+                onCheckedChange={(checked) =>
+                  setSetting("showColumn", { ...settings.showColumn, [key]: checked })
+                }
+              />
+            </li>
+          ))}
+        </ul>
+
+        <h3 className="pt-3 text-[13px] font-semibold text-ink-900">Sections on the invoice</h3>
+        <ul className="grid gap-1 sm:grid-cols-2">
+          {SECTION_TOGGLES.map(({ key, label }) => (
+            <li key={String(key)} className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-ink-50">
+              <Label htmlFor={`sec-${String(key)}`} className="cursor-pointer">{label}</Label>
+              <Switch
+                id={`sec-${String(key)}`}
+                checked={Boolean(settings[key])}
+                onCheckedChange={(checked) => setSetting(key, checked as InvoiceSettings[typeof key])}
+              />
+            </li>
+          ))}
         </ul>
       </section>
 
@@ -295,38 +324,6 @@ export function DesignPanel() {
         <LabelsPanel />
       </section>
 
-      {/* Visibility -------------------------------------------------------- */}
-      <section className="space-y-2">
-        <h3 className="text-[13px] font-semibold text-ink-800">Columns</h3>
-        <ul className="grid gap-1 sm:grid-cols-2">
-          {COLUMN_TOGGLES.map(({ key, label }) => (
-            <li key={key} className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-ink-50">
-              <Label htmlFor={`col-${key}`} className="cursor-pointer">{label}</Label>
-              <Switch
-                id={`col-${key}`}
-                checked={settings.showColumn[key]}
-                onCheckedChange={(checked) =>
-                  setSetting("showColumn", { ...settings.showColumn, [key]: checked })
-                }
-              />
-            </li>
-          ))}
-        </ul>
-
-        <h3 className="pt-2 text-[13px] font-semibold text-ink-800">Sections</h3>
-        <ul className="grid gap-1 sm:grid-cols-2">
-          {SECTION_TOGGLES.map(({ key, label }) => (
-            <li key={String(key)} className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-ink-50">
-              <Label htmlFor={`sec-${String(key)}`} className="cursor-pointer">{label}</Label>
-              <Switch
-                id={`sec-${String(key)}`}
-                checked={Boolean(settings[key])}
-                onCheckedChange={(checked) => setSetting(key, checked as InvoiceSettings[typeof key])}
-              />
-            </li>
-          ))}
-        </ul>
-      </section>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useInvoiceEditor } from "@/stores/invoice-editor";
+import { ClientPicker } from "./ClientPicker";
 
 export function CustomerForm() {
   const customer = useInvoiceEditor((s) => s.invoice.customer);
@@ -17,6 +18,8 @@ export function CustomerForm() {
 
   return (
     <div className="space-y-4">
+      <ClientPicker />
+
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Customer name" htmlFor="cust-name">
           <Input

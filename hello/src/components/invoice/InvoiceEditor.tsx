@@ -12,7 +12,7 @@
  * while creating an invoice.
  */
 import { useEffect, useState } from "react";
-import { Eye, FileText, Loader2, Pencil, RotateCcw } from "lucide-react";
+import { Eye, FileText, HelpCircle, Loader2, Pencil, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInvoiceEditor } from "@/stores/invoice-editor";
@@ -28,6 +28,7 @@ import { InvoicePreview } from "./InvoicePreview";
 import { DownloadButton } from "./DownloadButton";
 import { SaveToAccountPrompt } from "./SaveToAccountPrompt";
 import { SaveTemplateDialog } from "./editor/SaveTemplateDialog";
+import { FeatureTour, restartTour } from "./FeatureTour";
 import { useT } from "@/lib/i18n/use-locale";
 
 type Props = {
@@ -96,7 +97,9 @@ export function InvoiceEditor({
           <TabsTrigger value="items">{t("tabItems")}</TabsTrigger>
           <TabsTrigger value="tax">{t("tabTax")}</TabsTrigger>
           <TabsTrigger value="payment">{t("tabPayment")}</TabsTrigger>
-          <TabsTrigger value="design">{t("tabDesign")}</TabsTrigger>
+          <TabsTrigger value="design" data-tour="design">
+            {t("tabDesign")}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="details" className="space-y-6">
@@ -135,6 +138,8 @@ export function InvoiceEditor({
 
   return (
     <div className="w-full">
+      <FeatureTour />
+
       {/* Toolbar ----------------------------------------------------------- */}
       {/*
        * Stacks on small screens rather than wrapping. At phone width the
@@ -162,6 +167,16 @@ export function InvoiceEditor({
               type="button"
               variant="ghost"
               size="sm"
+              onClick={restartTour}
+              aria-label="Replay the feature tour"
+            >
+              <HelpCircle />
+              <span className="hidden sm:inline">Tour</span>
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => {
                 if (confirm("Start a new invoice? Your current draft in this browser will be cleared.")) {
                   reset();
@@ -171,7 +186,7 @@ export function InvoiceEditor({
               <RotateCcw /> {t("newInvoice")}
             </Button>
           </div>
-          <div className="w-full sm:w-56 sm:shrink-0">
+          <div className="w-full sm:w-auto sm:min-w-64" data-tour="download">
             <DownloadButton onDownloaded={() => setShowSavePrompt(authAvailable)} />
           </div>
         </div>
@@ -216,12 +231,12 @@ export function InvoiceEditor({
           // controls with the same accessible names as these form fields, so
           // assertions need a way to say which of the two they mean.
           data-editor-panel
-          className={`rounded-xl border border-ink-200 bg-white p-4 ${mobileView === "edit" ? "" : "hidden lg:block"}`}
+          className={`min-w-0 overflow-x-hidden rounded-xl border border-ink-200 bg-white p-3 sm:p-4 ${mobileView === "edit" ? "" : "hidden lg:block"}`}
         >
           {editorPanel}
         </div>
 
-        <div className={`lg:sticky lg:top-20 lg:self-start ${mobileView === "preview" ? "" : "hidden lg:block"}`}>
+        <div className={`min-w-0 lg:sticky lg:top-20 lg:self-start ${mobileView === "preview" ? "" : "hidden lg:block"}`}>
           <InvoicePreview />
         </div>
       </div>
