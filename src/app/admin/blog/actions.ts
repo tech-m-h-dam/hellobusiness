@@ -66,6 +66,14 @@ export async function savePost(formData: FormData) {
   const publishing = data.status === "published";
 
   if (data.id) {
+    // The publish date is the date it first went live, not the date it was
+    // last touched: stamping it on every save would reorder the blog index
+    // (which sorts by it) every time a typo was fixed.
+    const existing = await prisma.blogPost.findUnique({
+      where: { id: data.id },
+      select: { slug: true, publishedAt: true },
+    });
+
     await prisma.blogPost.update({
       where: { id: data.id },
       data: {
@@ -76,9 +84,12 @@ export async function savePost(formData: FormData) {
         seoTitle: data.seoTitle || null,
         seoDescription: data.seoDescription || null,
         status: data.status,
-        publishedAt: publishing ? new Date() : null,
+        publishedAt: publishing ? (existing?.publishedAt ?? new Date()) : null,
       },
     });
+
+    // A renamed slug leaves the old URL cached, so both are refreshed.
+    if (existing && existing.slug !== slug) revalidatePath(`/blog/${existing.slug}`);
   } else {
     await prisma.blogPost.create({
       data: {
@@ -96,6 +107,7 @@ export async function savePost(formData: FormData) {
 
   revalidatePath("/admin/blog");
   revalidatePath("/blog");
+  revalidatePath(`/blog/${slug}`);
   redirect("/admin/blog");
 }
 
@@ -104,9 +116,10 @@ export async function deletePost(formData: FormData) {
   const id = formData.get("id") as string;
   if (!id) throw new Error("Missing id");
 
-  await prisma.blogPost.delete({ where: { id } });
+  const deleted = await prisma.blogPost.delete({ where: { id } });
   revalidatePath("/admin/blog");
   revalidatePath("/blog");
+  revalidatePath(`/blog/${deleted.slug}`);
 }
 
 export async function markMessageHandled(formData: FormData) {

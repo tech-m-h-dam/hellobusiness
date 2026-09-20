@@ -42,10 +42,15 @@ type InvoiceEditorState = {
 let autosaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 function scheduleAutosave(invoice: Invoice, onSaved: () => void) {
-  if (autosaveTimer) clearTimeout(autosaveTimer);
+  cancelAutosave();
   autosaveTimer = setTimeout(() => {
     void draftStore.save(invoice).then(onSaved);
   }, 800);
+}
+
+function cancelAutosave() {
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = null;
 }
 
 export const useInvoiceEditor = create<InvoiceEditorState>((set, get) => ({
@@ -87,6 +92,34 @@ export const useInvoiceEditor = create<InvoiceEditorState>((set, get) => ({
     await saveInvoiceToHistory(invoice, totals);
   },
 }));
+
+/**
+ * Load an invoice into the editor from somewhere else in the app — "use this
+ * format", "use this template", opening or duplicating a saved invoice.
+ *
+ * Writing the draft to IndexedDB is not enough on its own. This store is a
+ * module singleton that outlives client-side navigation, so once any page has
+ * mounted the editor, `hydrated` stays true and `hydrateFromDraft()` returns
+ * early without re-reading the draft — the newly saved invoice would be on
+ * disk but the editor would still be showing the old one. So the store is
+ * updated directly as well, which also covers the case where the editor is
+ * already mounted on the current page.
+ *
+ * A pending autosave of the *previous* invoice is cancelled first: it would
+ * otherwise fire a few hundred milliseconds later and overwrite the draft that
+ * was just chosen.
+ */
+export async function openInvoiceInEditor(invoice: Invoice): Promise<void> {
+  cancelAutosave();
+  await draftStore.save(invoice);
+  useInvoiceEditor.setState({
+    invoice,
+    totals: computeTotals(invoice),
+    hydrated: true,
+    saving: false,
+    lastSavedAt: new Date().toISOString(),
+  });
+}
 
 /** Start a brand new invoice, carrying over the saved business profile if any. */
 export function newInvoiceFrom(business?: Invoice["business"]): Invoice {

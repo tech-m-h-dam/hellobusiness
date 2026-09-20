@@ -4,6 +4,7 @@ import { TEMPLATES } from "@/lib/invoice/templates";
 import { INVOICE_TYPES } from "@/lib/content/invoice-types";
 import { GUIDES } from "@/lib/content/guides";
 import { EXAMPLES } from "@/lib/content/examples";
+import { listPublishedPosts } from "@/lib/content/posts";
 
 /**
  * XML sitemap.
@@ -17,7 +18,7 @@ import { EXAMPLES } from "@/lib/content/examples";
  * template, guide or invoice type appears in the sitemap automatically and
  * cannot silently drift out of sync.
  */
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
   const core: MetadataRoute.Sitemap = [
@@ -63,5 +64,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  return [...core, ...tools, ...templates, ...guides, ...examples];
+  // Published CMS posts, so a new post is crawlable without a redeploy.
+  const posts: MetadataRoute.Sitemap = (await listPublishedPosts()).map((post) => ({
+    url: `${SITE_URL}/blog/${post.slug}`,
+    lastModified: new Date(post.publishedAt),
+    changeFrequency: "monthly",
+    priority: 0.6,
+  }));
+
+  return [...core, ...tools, ...templates, ...guides, ...examples, ...posts];
 }

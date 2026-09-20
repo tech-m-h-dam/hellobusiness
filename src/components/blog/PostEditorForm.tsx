@@ -37,7 +37,12 @@ export function PostEditorForm({ post }: { post?: PostDraft }) {
         <Textarea id="post-excerpt" name="excerpt" rows={2} defaultValue={post?.excerpt ?? ""} />
       </Field>
 
-      <Field label="Content" htmlFor="post-content" required hint="Markdown-style plain text">
+      <Field
+        label="Content"
+        htmlFor="post-content"
+        required
+        hint="Markdown-style plain text: ## heading, ### subheading, - bullet, 1. numbered, > callout, | table | row |. Blank lines separate paragraphs."
+      >
         <Textarea id="post-content" name="content" rows={16} defaultValue={post?.content ?? ""} required />
       </Field>
 

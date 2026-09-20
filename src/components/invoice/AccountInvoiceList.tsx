@@ -11,10 +11,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Loader2, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { draftStore } from "@/lib/invoice/storage";
 import { computeTotals } from "@/lib/invoice/calculations";
 import { invoiceSchema } from "@/lib/invoice/validation";
 import { track } from "@/lib/analytics/track";
+import { openInvoiceInEditor } from "@/stores/invoice-editor";
 
 export type AccountInvoiceSummary = {
   id: string;
@@ -47,7 +47,7 @@ export function AccountInvoiceList({ invoices }: { invoices: AccountInvoiceSumma
     setError(null);
     try {
       const invoice = await fetchInvoice(id);
-      await draftStore.save(invoice);
+      await openInvoiceInEditor(invoice);
       track("saved_invoice_opened");
       router.push("/invoice-generator");
     } catch (err) {

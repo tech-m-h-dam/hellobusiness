@@ -21,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { invoiceStore, draftStore, type InvoiceHistoryEntry } from "@/lib/invoice/storage";
+import { invoiceStore, type InvoiceHistoryEntry } from "@/lib/invoice/storage";
+import { openInvoiceInEditor } from "@/stores/invoice-editor";
 import { computeTotals } from "@/lib/invoice/calculations";
 import { formatMoney } from "@/lib/invoice/money";
 import { makeId } from "@/lib/invoice/defaults";
@@ -121,7 +122,7 @@ export function MyInvoices({
   }, [local, query, sort]);
 
   async function open(entry: InvoiceHistoryEntry) {
-    await draftStore.save(entry.invoice);
+    await openInvoiceInEditor(entry.invoice);
     router.push("/invoice-generator");
   }
 
@@ -133,7 +134,7 @@ export function MyInvoices({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    await draftStore.save(copy);
+    await openInvoiceInEditor(copy);
     router.push("/invoice-generator");
   }
 

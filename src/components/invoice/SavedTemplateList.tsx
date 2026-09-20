@@ -13,6 +13,7 @@ import { Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { type CustomTemplate, draftStore, templateStore } from "@/lib/invoice/storage";
 import { getTemplate } from "@/lib/invoice/templates";
+import { openInvoiceInEditor } from "@/stores/invoice-editor";
 
 export function SavedTemplateList() {
   const router = useRouter();
@@ -31,7 +32,7 @@ export function SavedTemplateList() {
   async function use(template: CustomTemplate) {
     const draft = await draftStore.get();
     if (draft) {
-      await draftStore.save({
+      await openInvoiceInEditor({
         ...draft,
         templateId: template.baseTemplateId,
         settings: { ...draft.settings, ...template.settings },

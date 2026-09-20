@@ -143,7 +143,9 @@ export function InvoiceEditor({
 
   return (
     <div className="w-full">
-      <FeatureTour />
+      {/* The tour drives this toggle so a step can point at whichever pane it
+          is about — on a phone the other one is not rendered. */}
+      <FeatureTour onMobileViewChange={setMobileView} />
 
       {/* Toolbar ----------------------------------------------------------- */}
       {/*

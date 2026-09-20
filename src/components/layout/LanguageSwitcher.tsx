@@ -21,21 +21,32 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
       <Languages className="hidden size-4 shrink-0 text-ink-400 sm:block" aria-hidden="true" />
       <Select value={locale} onValueChange={(v) => setLocale(v as AppLocale)}>
         {/*
-         * Narrow on small screens: the full language name plus the primary CTA
-         * overflowed the header below ~800px and forced horizontal page scroll.
-         * The selected value is shown as a short code there instead.
+         * Narrow until the header has room for the full language name, which
+         * is not until `lg`: that is where the nav links and the long form of
+         * the primary CTA also appear. This used to widen at `sm` (640px),
+         * which put roughly 100px of language name into a header that was
+         * already full between 640px and 1024px and scrolled the page
+         * sideways. The selected value is shown as a short code below that.
          */}
         <SelectTrigger
-          className="h-8 w-[4.25rem] px-2 sm:w-36 sm:px-3"
+          className="h-8 w-[4.25rem] px-2 lg:w-36 lg:px-3"
           aria-label={t("language")}
         >
           {/*
            * The label is rendered directly rather than through <SelectValue>:
            * SelectValue emits its own element, so pairing it with a responsive
            * short code showed both at once on small screens.
+           *
+           * Both forms are wrapped in one span because SelectTrigger styles
+           * its direct span children (`[&>span]:line-clamp-1`), and that
+           * descendant selector outranks a plain `hidden` on the span itself —
+           * so as direct children neither could ever be hidden and the trigger
+           * showed the code and the name at once, each ellipsised to a letter.
            */}
-          <span className="truncate sm:hidden">{locale.toUpperCase()}</span>
-          <span className="hidden truncate sm:inline">{LOCALE_NAMES[locale]}</span>
+          <span>
+            <span className="truncate lg:hidden">{locale.toUpperCase()}</span>
+            <span className="hidden truncate lg:inline">{LOCALE_NAMES[locale]}</span>
+          </span>
         </SelectTrigger>
         <SelectContent>
           {LOCALES.map((l) => (

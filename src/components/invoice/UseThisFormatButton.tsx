@@ -13,7 +13,7 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getExample } from "@/lib/content/examples";
 import { makeId } from "@/lib/invoice/defaults";
-import { draftStore } from "@/lib/invoice/storage";
+import { openInvoiceInEditor } from "@/stores/invoice-editor";
 
 export function UseThisFormatButton({ slug }: { slug: string }) {
   const router = useRouter();
@@ -25,7 +25,7 @@ export function UseThisFormatButton({ slug }: { slug: string }) {
     setBusy(true);
     try {
       const invoice = example.build();
-      await draftStore.save({
+      await openInvoiceInEditor({
         ...invoice,
         id: makeId("inv"),
         createdAt: new Date().toISOString(),
