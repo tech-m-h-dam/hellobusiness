@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { Cloud, FileText, Mail, ShieldCheck } from "lucide-react";
 import { auth } from "@/lib/auth/config";
 import { googleConfigured } from "@/lib/auth/status";
 import { prisma } from "@/lib/db/client";
+import { Avatar } from "@/components/ui/avatar";
 import { SignInButton } from "@/components/layout/SignInButton";
 import { AccountInvoiceList } from "@/components/invoice/AccountInvoiceList";
 import { SavedTemplateList } from "@/components/invoice/SavedTemplateList";
@@ -86,20 +86,16 @@ export default async function AccountPage() {
 
       {/* Identity ---------------------------------------------------------- */}
       <div className="mt-6 flex flex-wrap items-center gap-4 rounded-xl border border-ink-200 bg-white p-5">
-        {user?.image ? (
-          <Image
-            src={user.image}
-            alt=""
-            width={56}
-            height={56}
-            className="size-14 rounded-full"
-            unoptimized
-          />
-        ) : (
-          <span className="grid size-14 place-items-center rounded-full bg-brand-50 text-brand-700">
-            {(user?.name ?? user?.email ?? "?").charAt(0).toUpperCase()}
-          </span>
-        )}
+        <Avatar
+          src={user?.image}
+          size={56}
+          className="size-14 rounded-full"
+          fallback={
+            <span className="grid size-14 place-items-center rounded-full bg-brand-50 text-brand-700">
+              {(user?.name ?? user?.email ?? "?").charAt(0).toUpperCase()}
+            </span>
+          }
+        />
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-semibold text-ink-900">{user?.name ?? "Signed in"}</p>
           <p className="flex items-center gap-1.5 truncate text-[13px] text-ink-600">

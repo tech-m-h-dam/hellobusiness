@@ -8,9 +8,9 @@
  * static content pages pay for the locale store and this component rather than
  * for the whole header.
  */
-import Image from "next/image";
 import Link from "next/link";
 import { UserCircle } from "lucide-react";
+import { Avatar } from "@/components/ui/avatar";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { SignInButton } from "./SignInButton";
 import { useRestoreLocale, useT } from "@/lib/i18n/use-locale";
@@ -59,18 +59,12 @@ export function HeaderNav({
           aria-label="My profile"
           className="rounded-lg p-0.5 text-ink-500 transition-colors hover:bg-ink-100 hover:text-ink-900"
         >
-          {user.image ? (
-            <Image
-              src={user.image}
-              alt=""
-              width={28}
-              height={28}
-              className="size-7 rounded-full"
-              unoptimized
-            />
-          ) : (
-            <UserCircle className="size-5" />
-          )}
+          <Avatar
+            src={user.image}
+            size={28}
+            className="size-7 rounded-full"
+            fallback={<UserCircle className="size-5" />}
+          />
         </Link>
       )}
 

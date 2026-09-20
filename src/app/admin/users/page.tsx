@@ -1,7 +1,7 @@
-import Image from "next/image";
 import { ShieldCheck, ShieldMinus, ShieldPlus, User as UserIcon } from "lucide-react";
 import { auth } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/client";
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { setUserAdmin } from "./actions";
 
@@ -35,20 +35,16 @@ export default async function AdminUsersPage() {
               className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-200 bg-white p-4"
             >
               <div className="flex min-w-0 items-center gap-3">
-                {user.image ? (
-                  <Image
-                    src={user.image}
-                    alt=""
-                    width={36}
-                    height={36}
-                    className="size-9 shrink-0 rounded-full"
-                    unoptimized
-                  />
-                ) : (
-                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink-100 text-ink-400">
-                    <UserIcon className="size-4" aria-hidden="true" />
-                  </span>
-                )}
+                <Avatar
+                  src={user.image}
+                  size={36}
+                  className="size-9 shrink-0 rounded-full"
+                  fallback={
+                    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink-100 text-ink-400">
+                      <UserIcon className="size-4" aria-hidden="true" />
+                    </span>
+                  }
+                />
                 <div className="min-w-0">
                   <p className="flex items-center gap-1.5 font-medium text-ink-900">
                     <span className="truncate">{user.name ?? "Unnamed"}</span>

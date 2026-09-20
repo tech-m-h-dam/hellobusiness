@@ -66,6 +66,17 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Google account avatars, served through the image optimizer rather than
+    // hotlinked. lh*.googleusercontent.com rate-limits direct browser requests
+    // and answers with a 429 carrying an HTML body; because the request was
+    // for an image, Chrome refuses the mistyped response and reports
+    // ERR_BLOCKED_BY_ORB, so a hotlinked avatar disappears at random with no
+    // usable error. Routing through /_next/image means the fetch happens
+    // server-side, once, and is then cached (minimumCacheTTL, 4h by default)
+    // instead of being repeated by every visitor on every render.
+    remotePatterns: [
+      { protocol: "https", hostname: "*.googleusercontent.com", pathname: "/**" },
+    ],
   },
 
   experimental: {
