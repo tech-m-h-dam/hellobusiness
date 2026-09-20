@@ -10,7 +10,7 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3
   "",
 );
 
-export const SITE_NAME = "InvoiceFree";
+export const SITE_NAME = "Free Invoice Generator";
 
 export const SITE_TAGLINE = "Free Invoice Generator";
 

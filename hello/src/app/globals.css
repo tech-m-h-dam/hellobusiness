@@ -11,17 +11,19 @@
  * marketing surfaces only if it is added later.
  */
 @theme {
-  --color-brand-50: oklch(0.97 0.014 254);
-  --color-brand-100: oklch(0.932 0.032 255);
-  --color-brand-200: oklch(0.882 0.059 254);
-  --color-brand-300: oklch(0.809 0.105 252);
-  --color-brand-400: oklch(0.707 0.165 254);
-  --color-brand-500: oklch(0.623 0.214 259);
-  --color-brand-600: oklch(0.546 0.245 262);
-  --color-brand-700: oklch(0.488 0.243 264);
-  --color-brand-800: oklch(0.424 0.199 265);
-  --color-brand-900: oklch(0.379 0.146 265);
+  /* Primary — Professional Teal */
+  --color-brand-50: oklch(0.977 0.014 180);
+  --color-brand-100: oklch(0.953 0.032 180);
+  --color-brand-200: oklch(0.902 0.066 180);
+  --color-brand-300: oklch(0.845 0.105 180);
+  --color-brand-400: oklch(0.777 0.132 180);
+  --color-brand-500: oklch(0.704 0.124 180);
+  --color-brand-600: oklch(0.596 0.106 180);
+  --color-brand-700: oklch(0.510 0.086 180);
+  --color-brand-800: oklch(0.437 0.069 180);
+  --color-brand-900: oklch(0.378 0.057 180);
 
+  /* Neutral — Slate */
   --color-ink-50: oklch(0.984 0.003 248);
   --color-ink-100: oklch(0.968 0.007 248);
   --color-ink-200: oklch(0.929 0.013 256);
@@ -42,6 +44,7 @@
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
+
   @keyframes accordion-down {
     from {
       height: 0;
@@ -50,6 +53,7 @@
       height: var(--radix-accordion-content-height);
     }
   }
+
   @keyframes accordion-up {
     from {
       height: var(--radix-accordion-content-height);
