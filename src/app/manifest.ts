@@ -7,6 +7,7 @@ import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo/site";
  * in-browser PDF generation), so an installed copy is genuinely usable without
  * a connection.
  */
+import logo from '../../public/icons/lol.png';
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: `${SITE_NAME} — Free Invoice Generator`,
@@ -15,11 +16,11 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/invoice-generator",
     display: "standalone",
     background_color: "#ffffff",
-    theme_color: "lab(54.466% -37.1861 -.272489)",
+    theme_color: "#0D9381",
     orientation: "portrait-primary",
     categories: ["business", "finance", "productivity"],
     icons: [
-      { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+      { src: "../../public/icons/lol.png", sizes: "any", type: "image/svg+xml", purpose: "any" },
       // Raster sizes are generated from the same mark — see app/icons/[size].
       { src: "/icons/192", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icons/512", sizes: "512x512", type: "image/png", purpose: "any" },

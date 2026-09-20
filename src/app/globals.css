@@ -12,29 +12,29 @@
  */
 @theme {
   /* Primary — Professional Teal */
-  --color-brand-50: oklch(0.977 0.014 180);
-  --color-brand-100: oklch(0.953 0.032 180);
-  --color-brand-200: oklch(0.902 0.066 180);
-  --color-brand-300: oklch(0.845 0.105 180);
-  --color-brand-400: oklch(0.777 0.132 180);
-  --color-brand-500: oklch(0.704 0.124 180);
-  --color-brand-600: oklch(0.596 0.106 180);
-  --color-brand-700: oklch(0.510 0.086 180);
-  --color-brand-800: oklch(0.437 0.069 180);
-  --color-brand-900: oklch(0.378 0.057 180);
+  --color-brand-50: #EEFBF8;
+  --color-brand-100: #DAF7F0;
+  --color-brand-200: #AFEEE0;
+  --color-brand-300: #76E3CF;
+  --color-brand-400: #2FD1BA;
+  --color-brand-500: #19B8A3;
+  --color-brand-600: #0D9381;
+  --color-brand-700: #187668;
+  --color-brand-800: #1A5E53;
+  --color-brand-900: #174C43;
 
   /* Neutral — Slate */
-  --color-ink-50: oklch(0.984 0.003 248);
-  --color-ink-100: oklch(0.968 0.007 248);
-  --color-ink-200: oklch(0.929 0.013 256);
-  --color-ink-300: oklch(0.869 0.022 253);
-  --color-ink-400: oklch(0.704 0.04 257);
-  --color-ink-500: oklch(0.554 0.046 257);
-  --color-ink-600: oklch(0.446 0.043 257);
-  --color-ink-700: oklch(0.372 0.044 257);
-  --color-ink-800: oklch(0.279 0.041 260);
-  --color-ink-900: oklch(0.208 0.042 266);
-  --color-ink-950: oklch(0.129 0.042 265);
+  --color-ink-50: #F8FAFC;
+  --color-ink-100: #F1F5F9;
+  --color-ink-200: #E2E8F0;
+  --color-ink-300: #CAD5E2;
+  --color-ink-400: #90A1B9;
+  --color-ink-500: #62748E;
+  --color-ink-600: #45556C;
+  --color-ink-700: #314158;
+  --color-ink-800: #1D293D;
+  --color-ink-900: #0F172B;
+  --color-ink-950: #020618;
 
   --font-sans:
     var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
@@ -63,7 +63,6 @@
     }
   }
 }
-
 :root {
   --background: #ffffff;
   --foreground: var(--color-ink-900);
