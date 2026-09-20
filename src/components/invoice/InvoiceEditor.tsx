@@ -16,6 +16,7 @@ import { Eye, FileText, HelpCircle, Loader2, Pencil, RotateCcw } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInvoiceEditor } from "@/stores/invoice-editor";
+import { applyTemplatePreset } from "@/lib/invoice/templates";
 import { track } from "@/lib/analytics/track";
 import { BusinessForm } from "./editor/BusinessForm";
 import { CustomerForm } from "./editor/CustomerForm";
@@ -70,7 +71,10 @@ export function InvoiceEditor({
         update((inv) => ({
           ...inv,
           templateId: initialTemplateId ?? inv.templateId,
-          settings: { ...inv.settings, ...initialSettings },
+          settings: {
+            ...(initialTemplateId ? applyTemplatePreset(inv.settings, initialTemplateId) : inv.settings),
+            ...initialSettings,
+          },
           invoice: { ...inv.invoice, ...initialMeta },
         }));
       }
