@@ -101,6 +101,24 @@ export function BusinessForm() {
               placeholder="Acme Design Studio"
             />
           </Field>
+          {business.logo && (
+            <Field
+              label={`Logo width: ${business.logoWidth ?? 64}px`}
+              htmlFor="biz-logo-width"
+              hint="How wide the logo prints on the invoice"
+            >
+              <input
+                id="biz-logo-width"
+                type="range"
+                min={24}
+                max={240}
+                step={4}
+                value={business.logoWidth ?? 64}
+                onChange={(e) => set("logoWidth", Number(e.target.value))}
+                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-ink-200 accent-brand-600"
+              />
+            </Field>
+          )}
           {error && <p className="text-[12px] text-red-600" role="alert">{error}</p>}
         </div>
       </div>
@@ -131,6 +149,15 @@ export function BusinessForm() {
           value={business.addressLine1 ?? ""}
           onChange={(e) => set("addressLine1", e.target.value)}
           placeholder="Street address"
+        />
+      </Field>
+
+      <Field label="Address line 2" htmlFor="biz-addr2">
+        <Input
+          id="biz-addr2"
+          value={business.addressLine2 ?? ""}
+          onChange={(e) => set("addressLine2", e.target.value)}
+          placeholder="Suite, unit, building (optional)"
         />
       </Field>
 

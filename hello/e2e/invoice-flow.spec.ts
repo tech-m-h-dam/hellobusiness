@@ -206,3 +206,37 @@ test("every visible column has a matching cell in each row", async ({ page, isMo
   const lastCell = preview.locator("table tbody tr").first().locator("td").last();
   await expect(lastCell).toHaveText("$500.00");
 });
+
+test("newly exposed settings actually affect the document", async ({ page, isMobile }) => {
+  await page.goto("/invoice-generator");
+
+  // Locale + decimals drive number formatting through Intl.
+  await page.getByLabel("Number & date format").click();
+  await page.getByRole("option", { name: /German/ }).click();
+  await page.getByLabel("Date style").click();
+  await page.getByRole("option", { name: "20/09/2026" }).click();
+
+  await page.getByRole("tab", { name: "Items" }).click();
+  await page.getByLabel("Item 1 name").fill("Formatted item");
+  await page.getByLabel("Item 1 quantity").fill("1");
+  await page.getByLabel("Item 1 rate").fill("1234.5");
+
+  const preview = await showPreview(page, isMobile);
+  // German grouping uses "." for thousands and "," for decimals.
+  await expect(preview.getByText(/1\.234,50/).first()).toBeVisible();
+});
+
+test("payment fields print on the invoice", async ({ page, isMobile }) => {
+  await page.goto("/invoice-generator");
+
+  await page.getByRole("tab", { name: "Payment" }).click();
+  await page.getByRole("switch", { name: "Show bank details on the invoice" }).click();
+  await page.getByLabel("IBAN").fill("GB33BUKB20201555555555");
+  await page.getByLabel("SWIFT / BIC").fill("BUKBGB22");
+  await page.getByLabel("Payment instructions").fill("Quote the invoice number as reference.");
+
+  const preview = await showPreview(page, isMobile);
+  await expect(preview.getByText(/GB33BUKB20201555555555/)).toBeVisible();
+  await expect(preview.getByText(/BUKBGB22/)).toBeVisible();
+  await expect(preview.getByText(/Quote the invoice number/)).toBeVisible();
+});

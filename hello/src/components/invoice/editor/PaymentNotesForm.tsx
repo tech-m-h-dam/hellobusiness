@@ -57,8 +57,19 @@ export function PaymentNotesForm() {
               <Field label="Account number" htmlFor="pay-accnum">
                 <Input id="pay-accnum" value={payment.accountNumber ?? ""} onChange={(e) => setPayment("accountNumber", e.target.value)} />
               </Field>
-              <Field label="IFSC / Routing / SWIFT" htmlFor="pay-ifsc">
+              <Field label="IFSC code" htmlFor="pay-ifsc" hint="India">
                 <Input id="pay-ifsc" value={payment.ifsc ?? ""} onChange={(e) => setPayment("ifsc", e.target.value)} />
+              </Field>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="SWIFT / BIC" htmlFor="pay-swift" hint="International">
+                <Input id="pay-swift" value={payment.swift ?? ""} onChange={(e) => setPayment("swift", e.target.value)} />
+              </Field>
+              <Field label="IBAN" htmlFor="pay-iban" hint="Europe">
+                <Input id="pay-iban" value={payment.iban ?? ""} onChange={(e) => setPayment("iban", e.target.value)} />
+              </Field>
+              <Field label="Routing number" htmlFor="pay-routing" hint="US">
+                <Input id="pay-routing" value={payment.routingNumber ?? ""} onChange={(e) => setPayment("routingNumber", e.target.value)} />
               </Field>
             </div>
           </>
@@ -75,6 +86,19 @@ export function PaymentNotesForm() {
             <Input id="pay-link" value={payment.paymentLink ?? ""} onChange={(e) => setPayment("paymentLink", e.target.value)} placeholder="https://…" />
           </Field>
         </div>
+        <Field
+          label="Payment instructions"
+          htmlFor="pay-instructions"
+          hint="Free text printed under the payment details"
+        >
+          <Textarea
+            id="pay-instructions"
+            rows={2}
+            value={payment.instructions ?? ""}
+            onChange={(e) => setPayment("instructions", e.target.value)}
+            placeholder="Please quote the invoice number as the payment reference."
+          />
+        </Field>
       </section>
 
       {/* QR ---------------------------------------------------------------- */}

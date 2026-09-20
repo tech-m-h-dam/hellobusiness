@@ -125,6 +125,30 @@ export function DesignPanel() {
               <Input value={settings.primaryColor} onChange={(e) => setSetting("primaryColor", e.target.value)} />
             </div>
           </Field>
+          <Field label="Secondary colour" htmlFor="set-secondary" hint="Used by accents in some templates">
+            <div className="flex gap-2">
+              <input
+                id="set-secondary"
+                type="color"
+                className="h-10 w-12 cursor-pointer rounded-lg border border-ink-300 bg-white p-1"
+                value={settings.secondaryColor}
+                onChange={(e) => setSetting("secondaryColor", e.target.value)}
+              />
+              <Input value={settings.secondaryColor} onChange={(e) => setSetting("secondaryColor", e.target.value)} />
+            </div>
+          </Field>
+          <Field label="Text on colour" htmlFor="set-accent" hint="Text drawn over the accent colour">
+            <div className="flex gap-2">
+              <input
+                id="set-accent"
+                type="color"
+                className="h-10 w-12 cursor-pointer rounded-lg border border-ink-300 bg-white p-1"
+                value={settings.accentTextColor}
+                onChange={(e) => setSetting("accentTextColor", e.target.value)}
+              />
+              <Input value={settings.accentTextColor} onChange={(e) => setSetting("accentTextColor", e.target.value)} />
+            </div>
+          </Field>
           <Field label="Logo position" htmlFor="set-logopos">
             <Select
               value={settings.logoPosition}
@@ -176,6 +200,20 @@ export function DesignPanel() {
               </SelectContent>
             </Select>
           </Field>
+          <Field label="Orientation" htmlFor="set-orient">
+            <Select
+              value={settings.orientation}
+              onValueChange={(v) => setSetting("orientation", v as "portrait" | "landscape")}
+            >
+              <SelectTrigger id="set-orient">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="portrait">Portrait</SelectItem>
+                <SelectItem value="landscape">Landscape</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
@@ -198,6 +236,27 @@ export function DesignPanel() {
               step="0.5"
               value={settings.tableFontSize}
               onChange={(e) => setSetting("tableFontSize", Number(e.target.value) || 9.5)}
+            />
+          </Field>
+          <Field label="Heading size" htmlFor="set-heading">
+            <Input
+              id="set-heading"
+              type="number"
+              min={8}
+              max={40}
+              value={settings.headingFontSize}
+              onChange={(e) => setSetting("headingFontSize", Number(e.target.value) || 22)}
+            />
+          </Field>
+          <Field label="Footer text size" htmlFor="set-footer-size">
+            <Input
+              id="set-footer-size"
+              type="number"
+              min={5}
+              max={18}
+              step="0.5"
+              value={settings.footerFontSize}
+              onChange={(e) => setSetting("footerFontSize", Number(e.target.value) || 8.5)}
             />
           </Field>
           <Field label="Page margin" htmlFor="set-margin">
