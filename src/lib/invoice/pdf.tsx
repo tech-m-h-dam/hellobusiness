@@ -217,7 +217,13 @@ function BusinessBlock({
   );
 }
 
-function MetaBlock({ invoice, styles, align = "right" }: { invoice: Invoice; styles: Styles; align?: "left" | "right" }) {
+function MetaBlock({
+  invoice,
+  styles,
+  align = "right",
+  /** Suppressed for the banner layout, whose band already prints the title. */
+  showTitle = true,
+}: { invoice: Invoice; styles: Styles; align?: "left" | "right"; showTitle?: boolean }) {
   const m = invoice.invoice;
   const L = (key: LabelKey) => labelFor(invoice, key);
   const rows: [string, string | undefined][] = [
@@ -229,7 +235,7 @@ function MetaBlock({ invoice, styles, align = "right" }: { invoice: Invoice; sty
   ];
   return (
     <View style={{ alignItems: align === "right" ? "flex-end" : "flex-start" }}>
-      <Text style={styles.title}>{m.documentTitle || "Invoice"}</Text>
+      {showTitle ? <Text style={styles.title}>{m.documentTitle || "Invoice"}</Text> : null}
       <View style={{ marginTop: 4 }}>
         {rows
           .filter(([, value]) => Boolean(value))
@@ -617,7 +623,7 @@ export function InvoicePdfDocument({
             <View style={{ paddingHorizontal: 0 }}>
               <View style={styles.spaceBetween}>
                 <PartiesBlock invoice={invoice} styles={styles} />
-                <MetaBlock invoice={invoice} styles={styles} />
+                <MetaBlock invoice={invoice} styles={styles} showTitle={false} />
               </View>
               {body}
             </View>

@@ -36,6 +36,14 @@ export type InlineFieldSpec = {
   numeric?: boolean;
   /** Date fields get the native date picker, editing the raw ISO value. */
   dateInput?: boolean;
+  /**
+   * The background the field sits on. `light` is for fields printed on a
+   * template's coloured band or sidebar, where the document text is white:
+   * the idle hover affordance switches to a light-on-dark treatment so the
+   * text does not disappear against it. Defaults to `dark` (dark text on the
+   * white sheet).
+   */
+  tone?: "light" | "dark";
   className?: string;
 };
 

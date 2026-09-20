@@ -38,8 +38,13 @@ export type DocProps = {
  * Render `value` as editable text when editing is enabled, or as plain text
  * when it is not. Keeping the branch here means callers never have to care
  * which mode the document is in.
+ *
+ * Exported because the layouts themselves render a few fields directly — a
+ * banner's title, a split header's dates — rather than only through the blocks
+ * below. Those must go through this same helper or the field silently becomes
+ * uneditable in that template only.
  */
-function Editable({
+export function Editable({
   edit,
   value,
   display,
@@ -49,6 +54,7 @@ function Editable({
   multiline,
   numeric,
   dateInput,
+  tone,
   className,
 }: {
   edit?: InlineEdit;
@@ -60,6 +66,7 @@ function Editable({
   multiline?: boolean;
   numeric?: boolean;
   dateInput?: boolean;
+  tone?: "light" | "dark";
   className?: string;
 }) {
   // Non-interactive consumers show the formatted text, never the raw value.
@@ -73,20 +80,23 @@ function Editable({
     multiline,
     numeric,
     dateInput,
+    tone,
     className,
   });
 }
 
 /** Rename a printed label in place — "click any label to rename it". */
-function EditableLabel({
+export function EditableLabel({
   edit,
   invoice,
   labelKey,
+  tone,
   className,
 }: {
   edit?: InlineEdit;
   invoice: Invoice;
   labelKey: LabelKey;
+  tone?: "light" | "dark";
   className?: string;
 }) {
   const value = labelFor(invoice, labelKey);
@@ -94,10 +104,20 @@ function EditableLabel({
   return edit.field({
     value,
     ariaLabel: `Label: ${value}`,
+    tone,
     className,
     onCommit: (next) =>
       edit.patch((inv) => ({ ...inv, labels: { ...inv.labels, [labelKey]: next } })),
   });
+}
+
+/**
+ * Patch a field of `invoice.invoice`. Layouts that render meta fields outside
+ * `InvoiceMetaBlock` need the same commit behaviour it uses.
+ */
+export function metaPatcher(edit: InlineEdit | undefined) {
+  return (key: keyof Invoice["invoice"], next: string) =>
+    edit?.patch((inv) => ({ ...inv, invoice: { ...inv.invoice, [key]: next } }));
 }
 
 function money(invoice: Invoice, amount: number) {
@@ -181,10 +201,18 @@ export function BusinessIdentity({ invoice, edit, tone = "dark" }: DocProps & { 
   );
 }
 
-export function InvoiceMetaBlock({ invoice, edit, align = "right" }: DocProps & { align?: "left" | "right" }) {
+export function InvoiceMetaBlock({
+  invoice,
+  edit,
+  align = "right",
+  /**
+   * Layouts whose header already prints the document title (banner, split)
+   * suppress it here so it is not rendered twice on the same page.
+   */
+  showTitle = true,
+}: DocProps & { align?: "left" | "right"; showTitle?: boolean }) {
   const m = invoice.invoice;
-  const setMeta = (key: keyof Invoice["invoice"], next: string) =>
-    edit?.patch((inv) => ({ ...inv, invoice: { ...inv.invoice, [key]: next } }));
+  const setMeta = metaPatcher(edit);
 
   // Dates are shown formatted but edited raw, so the field stays a date input
   // and the displayed format setting is not fighting the parser.
@@ -227,16 +255,18 @@ export function InvoiceMetaBlock({ invoice, edit, align = "right" }: DocProps & 
   ];
   return (
     <div className={align === "right" ? "text-right" : "text-left"}>
-      <h1 className="text-2xl font-bold uppercase tracking-wide" style={{ color: "var(--doc-primary)" }}>
-        <Editable
-          edit={edit}
-          value={m.documentTitle}
-          placeholder="Invoice"
-          ariaLabel="Document title"
-          onCommit={(v) => setMeta("documentTitle", v)}
-        />
-      </h1>
-      <dl className="mt-2 space-y-0.5 text-[12px] text-ink-600">
+      {showTitle && (
+        <h1 className="text-2xl font-bold uppercase tracking-wide" style={{ color: "var(--doc-primary)" }}>
+          <Editable
+            edit={edit}
+            value={m.documentTitle}
+            placeholder="Invoice"
+            ariaLabel="Document title"
+            onCommit={(v) => setMeta("documentTitle", v)}
+          />
+        </h1>
+      )}
+      <dl className={`space-y-0.5 text-[12px] text-ink-600 ${showTitle ? "mt-2" : ""}`}>
         {rows.map((row) =>
           row.show && (row.display || edit) ? (
             <div key={row.labelKey} className={`flex gap-2 ${align === "right" ? "justify-end" : ""}`}>

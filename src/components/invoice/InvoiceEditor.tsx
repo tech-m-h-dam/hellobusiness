@@ -232,9 +232,12 @@ export function InvoiceEditor({
         </Button>
       </div>
 
-      <div // Editor 60 / preview 40, so the document is comfortably readable without
-        // squeezing the form it is being filled in from.
-        className="grid gap-6 lg:grid-cols-[minmax(0,6fr)_minmax(0,4fr)]">
+      <div // An even 50/50 split: the document is filled in from either side —
+        // the form on the left or the click-to-edit fields on the sheet itself —
+        // so neither column is the secondary one. Equal halves also give the
+        // preview enough width to render a full page at a readable scale
+        // instead of a thumbnail.
+        className="grid gap-6 lg:grid-cols-2">
         <div
           data-print="hide"
           // Stable hook for tests: the document now exposes click-to-edit

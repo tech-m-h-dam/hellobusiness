@@ -25,6 +25,7 @@ export function InlineField({
   multiline,
   numeric,
   dateInput,
+  tone = "dark",
   className = "",
 }: InlineFieldSpec) {
   const [editing, setEditing] = useState(false);
@@ -72,10 +73,15 @@ export function InlineField({
           // Inherit the document's own typography so the control is invisible
           // until hovered — this is a document, not a form.
           "cursor-text rounded-[3px] text-left font-[inherit] text-[length:inherit] leading-[inherit] text-[color:inherit]",
-          "hover:bg-brand-50/70 hover:outline hover:outline-1 hover:outline-dashed hover:outline-brand-300",
+          "hover:outline hover:outline-1 hover:outline-dashed",
+          // On a coloured band the document text is white, so the light hover
+          // wash would hide it; tint the band itself instead.
+          tone === "light"
+            ? "hover:bg-white/20 hover:outline-white/70"
+            : "hover:bg-brand-50/70 hover:outline-brand-300",
           "focus-visible:outline-2 focus-visible:outline-brand-600",
           multiline ? "block w-full whitespace-pre-line" : "inline",
-          isEmpty ? "text-ink-400 italic" : "",
+          isEmpty ? (tone === "light" ? "italic opacity-70" : "text-ink-400 italic") : "",
           className,
         ].join(" ")}
       >
@@ -104,10 +110,15 @@ export function InlineField({
       }
     },
     className: [
-      "w-full rounded-[3px] bg-white font-[inherit] text-[length:inherit] leading-[inherit] text-[color:inherit]",
+      "w-full rounded-[3px] bg-white font-[inherit] text-[length:inherit] leading-[inherit]",
       "outline outline-2 outline-brand-500",
       className,
     ].join(" "),
+    // The open input always sits on white, including inside a coloured band
+    // or sidebar where the surrounding document text is white. Inheriting that
+    // colour would make what you are typing invisible, so the text colour is
+    // pinned here rather than inherited.
+    style: { color: "#0f172a" } as const,
   };
 
   if (multiline) return <textarea {...shared} rows={Math.max(2, draft.split("\n").length)} />;
