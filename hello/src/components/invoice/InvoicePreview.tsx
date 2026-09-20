@@ -51,10 +51,19 @@ export function InvoicePreview() {
 
   return (
     <div ref={containerRef} className="w-full">
+      {/*
+       * `data-print="sheet"` marks the fit-to-column wrapper. Both the CSS
+       * scale transform and the explicit pixel height below exist purely to fit
+       * a real page-sized sheet into the preview column; when printing, the
+       * page *is* the page, so globals.css resets both. Without that reset the
+       * invoice prints at whatever the preview happened to be scaled to and is
+       * clipped to the on-screen height.
+       */}
       <div
         ref={sheetRef}
+        data-print="sheet"
         style={{ height: height || undefined }}
-        className="overflow-hidden rounded-lg shadow-lg ring-1 ring-ink-200 print:overflow-visible print:rounded-none print:shadow-none print:ring-0"
+        className="overflow-hidden rounded-lg shadow-lg ring-1 ring-ink-200"
       >
         <InvoiceDocument invoice={invoice} totals={totals} scale={scale} />
       </div>

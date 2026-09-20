@@ -194,6 +194,33 @@ body {
     display: none !important;
   }
 
+  /*
+   * Print only the invoice.
+   *
+   * The tool pages wrap the editor in marketing copy, SEO prose, template
+   * galleries and FAQs — none of which belongs on paper. Rather than annotating
+   * every section on every route (and silently leaking whatever a new page
+   * adds), this hides, at each level of the tree, any element that neither
+   * contains the invoice nor is part of it. Only the ancestor chain down to the
+   * document survives, and the document's own subtree is explicitly excluded so
+   * its author display values (flex, grid, table-row) are left intact.
+   *
+   * The measured depth from <body> to the document is 8; this goes to 10 for
+   * headroom if the layout gains a wrapper.
+   */
+  body > *:not(:has([data-print="area"])):not([data-print="area"]):not([data-print="area"] *),
+  body > * > *:not(:has([data-print="area"])):not([data-print="area"]):not([data-print="area"] *),
+  body > * > * > *:not(:has([data-print="area"])):not([data-print="area"]):not([data-print="area"] *),
+  body > * > * > * > *:not(:has([data-print="area"])):not([data-print="area"]):not([data-print="area"] *),
+  body > * > * > * > * > *:not(:has([data-print="area"])):not([data-print="area"]):not([data-print="area"] *),
+  body > * > * > * > * > * > *:not(:has([data-print="area"])):not([data-print="area"]):not([data-print="area"] *),
+  body > * > * > * > * > * > * > *:not(:has([data-print="area"])):not([data-print="area"]):not([data-print="area"] *),
+  body > * > * > * > * > * > * > * > *:not(:has([data-print="area"])):not([data-print="area"]):not([data-print="area"] *),
+  body > * > * > * > * > * > * > * > * > *:not(:has([data-print="area"])):not([data-print="area"]):not([data-print="area"] *),
+  body > * > * > * > * > * > * > * > * > * > *:not(:has([data-print="area"])):not([data-print="area"]):not([data-print="area"] *) {
+    display: none !important;
+  }
+
   html,
   body {
     background: #fff !important;
@@ -201,16 +228,58 @@ body {
     padding: 0 !important;
   }
 
+  /*
+   * Neutralise the ancestor chain above the invoice. On the editor pages the
+   * sheet sits inside a max-width container, a two-column grid and a sticky
+   * positioning context — all of which would otherwise squeeze the printed
+   * page into the column the preview occupied on screen. `:has()` selects
+   * exactly the elements that contain the document, so nothing else on the
+   * page is affected.
+   */
+  body :has([data-print="area"]) {
+    display: block !important;
+    position: static !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: none !important;
+    grid-template-columns: none !important;
+    gap: 0 !important;
+    overflow: visible !important;
+  }
+
+  /*
+   * The preview wrapper scales a real page-sized sheet down to fit the editor
+   * column. On paper the page is already the right size, so both the scale
+   * transform and the pixel height that wrapper pins itself to have to go —
+   * otherwise the invoice prints at the preview's scale factor and is clipped
+   * to the on-screen height instead of flowing across pages.
+   */
+  [data-print="sheet"] {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    --tw-ring-shadow: 0 0 #0000 !important;
+  }
+
   [data-print="area"] {
     position: static !important;
     display: block !important;
+    /* The document keeps its own page padding; only outer spacing is removed. */
     margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
     box-shadow: none !important;
     border: 0 !important;
     overflow: visible !important;
+    transform: none !important;
+    height: auto !important;
+    max-height: none !important;
+    /* Let the sheet occupy the full printable page width. */
+    width: 100% !important;
+    min-height: 0 !important;
   }
 
   /* Never split a line-item row or an image block across a page. */

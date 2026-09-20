@@ -240,3 +240,42 @@ test("payment fields print on the invoice", async ({ page, isMobile }) => {
   await expect(preview.getByText(/BUKBGB22/)).toBeVisible();
   await expect(preview.getByText(/Quote the invoice number/)).toBeVisible();
 });
+
+test("printing outputs only the invoice, unscaled", async ({ page, isMobile }) => {
+  test.skip(isMobile, "print layout is verified once, on desktop");
+
+  await page.goto("/invoice-generator");
+  await page.getByLabel("Business name").fill("Print Regression Co");
+  await page.getByRole("tab", { name: "Items" }).click();
+  await page.getByLabel("Item 1 name").fill("Printed line item");
+  await page.getByLabel("Item 1 rate").fill("100");
+  await page.waitForTimeout(500);
+
+  await page.emulateMedia({ media: "print" });
+
+  // The preview scales a page-sized sheet to fit the column; on paper it must
+  // print at full size, not at whatever the preview happened to be scaled to.
+  const transform = await page
+    .locator('[data-print="area"]')
+    .evaluate((el) => getComputedStyle(el).transform);
+  expect(transform).toBe("none");
+
+  // The wrapper pins itself to the scaled preview height on screen; if that
+  // survived into print it would clip a multi-page invoice.
+  const wrapperOverflow = await page
+    .locator('[data-print="sheet"]')
+    .evaluate((el) => getComputedStyle(el).overflow);
+  expect(wrapperOverflow).toBe("visible");
+
+  // The surrounding marketing copy and SEO prose must not print.
+  await expect(page.getByRole("heading", { name: "Invoice Generator", level: 1 })).toBeHidden();
+  await expect(page.getByRole("heading", { name: /How the invoice generator works/ })).toBeHidden();
+  await expect(page.locator("header[data-site-header]")).toBeHidden();
+  await expect(page.locator("footer[data-site-footer]")).toBeHidden();
+
+  // The invoice itself is still there.
+  // The business name appears in both the header and the footer line.
+  await expect(
+    page.locator('[data-print="area"]').getByText("Print Regression Co").first(),
+  ).toBeVisible();
+});
