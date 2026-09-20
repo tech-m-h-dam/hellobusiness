@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { FileText, Inbox, LayoutDashboard, LogOut } from "lucide-react";
+import { FileText, Inbox, LayoutDashboard, LogOut, Users } from "lucide-react";
 import { auth, googleConfigured } from "@/lib/auth/config";
 
 /**
@@ -24,6 +24,7 @@ const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/blog", label: "Blog posts", icon: FileText },
   { href: "/admin/messages", label: "Messages", icon: Inbox },
+  { href: "/admin/users", label: "Users", icon: Users },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

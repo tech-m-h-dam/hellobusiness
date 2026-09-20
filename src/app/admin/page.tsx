@@ -17,7 +17,7 @@ export default async function AdminDashboard() {
   const cards = [
     { label: "Published posts", value: posts, sub: `${drafts} draft${drafts === 1 ? "" : "s"}`, href: "/admin/blog", icon: FileText },
     { label: "Contact messages", value: messages, sub: `${unhandled} unread`, href: "/admin/messages", icon: Inbox },
-    { label: "Registered users", value: users, sub: `${savedInvoices} saved invoices`, href: "/admin", icon: Users },
+    { label: "Registered users", value: users, sub: `${savedInvoices} saved invoices`, href: "/admin/users", icon: Users },
   ];
 
   return (

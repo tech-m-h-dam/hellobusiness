@@ -12,7 +12,7 @@
  * while creating an invoice.
  */
 import { useEffect, useState } from "react";
-import { Eye, FileText, HelpCircle, Loader2, Pencil, RotateCcw } from "lucide-react";
+import { Cloud, Eye, FileText, HelpCircle, Loader2, Pencil, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInvoiceEditor } from "@/stores/invoice-editor";
@@ -60,7 +60,8 @@ export function InvoiceEditor({
   const update = useInvoiceEditor((s) => s.update);
   const reset = useInvoiceEditor((s) => s.reset);
   const [mobileView, setMobileView] = useState<"edit" | "preview">("edit");
-  // Only ever shown after a successful download, and dismissible for the session.
+  // Shown after a successful download, or on demand via the toolbar CTA;
+  // dismissible for the session either way.
   const [showSavePrompt, setShowSavePrompt] = useState(false);
   const t = useT();
 
@@ -190,6 +191,11 @@ export function InvoiceEditor({
               <RotateCcw /> {t("newInvoice")}
             </Button>
           </div>
+          {authAvailable && (
+            <Button type="button" variant="secondary" size="sm" onClick={() => setShowSavePrompt(true)}>
+              <Cloud /> {t("saveInvoice")}
+            </Button>
+          )}
           <div className="w-full sm:w-auto sm:min-w-64" data-tour="download">
             <DownloadButton onDownloaded={() => setShowSavePrompt(authAvailable)} />
           </div>

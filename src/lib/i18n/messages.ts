@@ -35,6 +35,7 @@ const en = {
   savedLocally: "Saved in this browser",
   notSavedYet: "Not saved yet",
   newInvoice: "New",
+  saveInvoice: "Save invoice",
   myTemplates: "My templates",
   downloadPdf: "Download PDF",
   downloadWord: "Download Word (.docx)",

@@ -19,15 +19,21 @@ const csp = [
   // XSS protection the CSP exists for stays intact. Browsers that don't support
   // the directive simply fall back to the print-to-PDF path.
   process.env.NODE_ENV === "production"
-    ? "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com"
-    : "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    ? "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com https://accounts.google.com"
+    : "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://accounts.google.com",
+  // `https://accounts.google.com` on style-src is required by the Google
+  // Identity Services client, which injects a <link rel="stylesheet"> to
+  // https://accounts.google.com/gsi/style for the One Tap prompt.
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https:",
   // `data:` is needed because the PDF engine loads its WebAssembly module from
   // an inlined data: URL; without it the fetch is blocked and logs an error.
-  "connect-src 'self' data: blob: https://www.google-analytics.com",
-  "frame-src 'self' https://googleads.g.doubleclick.net",
+  // `https://accounts.google.com` is needed for the One Tap client's own
+  // status/credential requests.
+  "connect-src 'self' data: blob: https://www.google-analytics.com https://accounts.google.com",
+  // `https://accounts.google.com` hosts the One Tap prompt's iframe.
+  "frame-src 'self' https://googleads.g.doubleclick.net https://accounts.google.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
