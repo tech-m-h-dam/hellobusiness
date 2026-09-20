@@ -232,6 +232,26 @@ body {
   }
 
   /*
+   * Print the document's colour.
+   *
+   * Browsers drop background colours and images when printing unless this is
+   * set. Every template but Minimal is built on filled areas — the banner band,
+   * the sidebar column, the split header card, the table header row, striped
+   * rows and the total bar — and each of those prints white text on the fill.
+   * Without this the fills disappear and the white text goes with them, so the
+   * totals bar and the table header come out blank on paper while looking
+   * correct on screen. `print-color-adjust` inherits, but the prefixed property
+   * does not apply to descendants in older WebKit, hence the universal rule.
+   */
+  html,
+  body,
+  [data-print="area"],
+  [data-print="area"] * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /*
    * Neutralise the ancestor chain above the invoice. On the editor pages the
    * sheet sits inside a max-width container, a two-column grid and a sticky
    * positioning context — all of which would otherwise squeeze the printed
@@ -287,6 +307,27 @@ body {
 
   /* Never split a line-item row or an image block across a page. */
   [data-print-avoid-break] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /*
+   * The sidebar layout's coloured column is as tall as the row it sits in, and
+   * on screen that row is stretched by the sheet's page-height minimum. The
+   * minimum is dropped above (so a short invoice does not push a blank second
+   * page), which would otherwise leave the band ending halfway down the paper.
+   * With @page margin 0, one page is one viewport height.
+   */
+  [data-doc-band="sidebar"] {
+    min-height: 100vh;
+  }
+
+  /* Keep a header, a totals block or a signature from straddling a page. */
+  [data-print="area"] thead {
+    display: table-header-group;
+  }
+
+  [data-print="area"] img {
     break-inside: avoid;
     page-break-inside: avoid;
   }

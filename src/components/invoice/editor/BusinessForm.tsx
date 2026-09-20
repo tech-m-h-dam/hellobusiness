@@ -37,7 +37,12 @@ export function BusinessForm() {
       const processed = await processLogoFile(file);
       update((inv) => ({
         ...inv,
-        business: { ...inv.business, logo: processed.src },
+        business: {
+          ...inv.business,
+          logo: processed.src,
+          // Kept so the Word export can size the logo without distorting it.
+          logoAspect: processed.height ? processed.width / processed.height : undefined,
+        },
       }));
       track("logo_uploaded");
     } catch (err) {

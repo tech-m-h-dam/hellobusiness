@@ -33,9 +33,17 @@ test.beforeEach(async ({ context }) => {
   });
 });
 
+/**
+ * The document as it appears on screen.
+ *
+ * The editor renders the document twice: the interactive copy the user sees
+ * (`data-print="preview"`) and a read-only twin that is the print target
+ * (`data-print="area"`, hidden on screen). On-screen assertions must use the
+ * former; print assertions use the latter.
+ */
 async function showPreview(page: Page, isMobile: boolean | undefined) {
   if (isMobile) await page.getByRole("button", { name: "Preview" }).click();
-  return page.locator('[data-print="area"]');
+  return page.locator('[data-print="preview"]');
 }
 
 /**
@@ -169,7 +177,7 @@ test("mobile shows an edit/preview toggle", async ({ page, isMobile }) => {
   await expect(previewToggle).toBeVisible();
 
   await previewToggle.click();
-  await expect(page.locator('[data-print="area"]')).toBeVisible();
+  await expect(page.locator('[data-print="preview"]')).toBeVisible();
 });
 
 test("downloads a Word document", async ({ page }) => {
@@ -306,6 +314,20 @@ test("printing outputs only the invoice, unscaled", async ({ page, isMobile }) =
   await expect(
     page.locator('[data-print="area"]').getByText("Print Regression Co").first(),
   ).toBeVisible();
+
+  // What prints is the read-only document, so none of the editor's own
+  // affordances reach the paper: no editable controls, and no placeholder
+  // prompts standing in for fields this invoice never filled in.
+  const printArea = page.locator('[data-print="area"]');
+  await expect(printArea.locator("button, input, textarea")).toHaveCount(0);
+  await expect(printArea.getByText("Street address")).toHaveCount(0);
+  await expect(printArea.getByText("Billing address")).toHaveCount(0);
+
+  // Filled areas must keep their fill on paper. Without print-color-adjust the
+  // browser drops the background, and the white text sitting on it — the table
+  // header row and the total bar — goes invisible with it.
+  const adjust = await printArea.evaluate((el) => getComputedStyle(el).printColorAdjust);
+  expect(adjust).toBe("exact");
 });
 
 test("saving and applying a custom template", async ({ page }) => {

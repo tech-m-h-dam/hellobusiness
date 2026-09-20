@@ -25,8 +25,14 @@ import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY = "tour-seen-v1";
 
-/** The inline-edit control the document step opens to demonstrate itself. */
-const DEMO_FIELD = '[data-print="area"] button[aria-label^="Document title"]';
+/**
+ * The inline-edit control the document step opens to demonstrate itself.
+ *
+ * `preview`, not `area`: the editor renders the document twice and only the
+ * read-only twin is the print target, so `[data-print="area"]` here would
+ * select the copy that is hidden on screen (see InvoicePreview).
+ */
+const DEMO_FIELD = '[data-print="preview"] button[aria-label^="Document title"]';
 
 type Step = {
   /** CSS selector for the element to highlight; null centres the step. */
@@ -63,7 +69,7 @@ const STEPS: Step[] = [
     body: "Your business, the client, line items, tax and payment details — grouped into tabs. Everything saves in this browser as you type.",
   },
   {
-    target: '[data-print="area"]',
+    target: '[data-print="preview"]',
     mobileView: "preview",
     demo: true,
     title: "Or edit straight on the document",

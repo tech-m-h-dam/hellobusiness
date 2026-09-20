@@ -1,12 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo/site";
 
-/**
- * PWA manifest. Installability matters here for a real reason rather than as a
- * checkbox: the editor works offline once loaded (local state, local storage,
- * in-browser PDF generation), so an installed copy is genuinely usable without
- * a connection.
- */
+
 import logo from '../../public/icons/lol.png';
 export default function manifest(): MetadataRoute.Manifest {
   return {

@@ -186,8 +186,20 @@ function BusinessBlock({
   const b = invoice.business;
   const color = light ? "#ffffff" : "#0f172a";
   const sub = light ? "rgba(255,255,255,0.85)" : "#64748b";
+  // Matches the HTML document's reading of `logoPosition` (see parts.tsx), so
+  // the PDF and the on-screen preview place the mark the same way.
+  const position = invoice.settings.logoPosition ?? "left";
+  const direction =
+    position === "right" ? "row-reverse" : position === "center" ? "column" : "row";
   return (
-    <View style={{ flexDirection: "row", gap: 8, maxWidth: 260 }}>
+    <View
+      style={{
+        flexDirection: direction,
+        alignItems: position === "center" ? "center" : "flex-start",
+        gap: 8,
+        maxWidth: 260,
+      }}
+    >
       {b.logo ? <PdfImage src={b.logo} style={{ width: b.logoWidth ?? 56, objectFit: "contain" }} /> : null}
       <View>
         <Text style={{ fontSize: invoice.settings.baseFontSize + 3, fontWeight: 700, color }}>

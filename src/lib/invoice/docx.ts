@@ -100,6 +100,15 @@ export function buildInvoiceDocx(invoice: Invoice, totals: ComputedTotals): Docu
   /* --- Header: business + document title ------------------------------- */
   const logo = invoice.business.logo ? dataUrlToBytes(invoice.business.logo) : null;
   if (logo) {
+    /*
+     * Word needs both dimensions stated. This used to hardcode a 2:1 box at
+     * `settings.logoSize` — a setting the editor does not expose — so the Word
+     * export both ignored the logo-width slider the user actually moved and
+     * stretched any logo that was not exactly twice as wide as it was tall.
+     */
+    const width = invoice.business.logoWidth ?? s.logoSize;
+    const aspect = invoice.business.logoAspect;
+    const height = Math.max(1, Math.round(width / (aspect && aspect > 0 ? aspect : 2)));
     children.push(
       new Paragraph({
         spacing: { after: 120 },
@@ -107,7 +116,7 @@ export function buildInvoiceDocx(invoice: Invoice, totals: ComputedTotals): Docu
           new ImageRun({
             type: logo.type,
             data: logo.data,
-            transformation: { width: s.logoSize, height: Math.round(s.logoSize * 0.5) },
+            transformation: { width, height },
           }),
         ],
       }),

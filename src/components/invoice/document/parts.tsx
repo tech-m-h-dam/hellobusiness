@@ -126,14 +126,84 @@ function money(invoice: Invoice, amount: number) {
 
 /* -------------------------------------------------------------------------- */
 
-export function BusinessIdentity({ invoice, edit, tone = "dark" }: DocProps & { tone?: "dark" | "light" }) {
+/**
+ * Where the logo sits relative to the business text. This is `logoPosition`
+ * from the template preset, applied here rather than in each layout — before,
+ * only the banner looked at it, so "center" and "right" were silently ignored
+ * by 18 of the 20 templates.
+ */
+const LOGO_LAYOUT: Record<"left" | "right" | "center", string> = {
+  left: "flex-row items-start",
+  right: "flex-row-reverse items-start",
+  center: "flex-col items-center text-center",
+};
+
+/** The text fields of `business` — `logoWidth` is a number and edited by slider. */
+type BizKey = Exclude<keyof Invoice["business"], "logo" | "logoWidth" | "logoAspect">;
+
+/** Single-line business fields, in the order they print under the name. */
+const BUSINESS_LINES: { key: BizKey; placeholder: string; label: string; prefix?: string }[] = [
+  { key: "addressLine1", placeholder: "Street address", label: "Business address line 1" },
+  { key: "addressLine2", placeholder: "Address line 2", label: "Business address line 2" },
+];
+
+/** City/state/postcode share one printed line but remain three separate fields. */
+const BUSINESS_REGION: { key: BizKey; placeholder: string; label: string }[] = [
+  { key: "city", placeholder: "City", label: "Business city" },
+  { key: "state", placeholder: "State", label: "Business state" },
+  { key: "postalCode", placeholder: "Postal code", label: "Business postal code" },
+];
+
+const BUSINESS_TAIL: { key: BizKey; placeholder: string; label: string; prefix?: string }[] = [
+  { key: "country", placeholder: "Country", label: "Business country" },
+  { key: "email", placeholder: "Email", label: "Business email" },
+  { key: "phone", placeholder: "Phone", label: "Business phone" },
+  { key: "website", placeholder: "Website", label: "Business website" },
+  { key: "gstin", placeholder: "GSTIN", label: "Business GSTIN", prefix: "GSTIN: " },
+  { key: "taxId", placeholder: "Tax ID", label: "Business tax ID", prefix: "Tax ID: " },
+];
+
+export function BusinessIdentity({
+  invoice,
+  edit,
+  tone = "dark",
+  /** `compact` only tightens type; it never drops fields (see CompactLayout). */
+  size = "default",
+}: DocProps & { tone?: "dark" | "light"; size?: "default" | "compact" }) {
   const b = invoice.business;
-  const setBiz = (key: keyof Invoice["business"], next: string) =>
+  const setBiz = (key: BizKey, next: string) =>
     edit?.patch((inv) => ({ ...inv, business: { ...inv.business, [key]: next } }));
   const textColor = tone === "light" ? "text-white" : "text-ink-900";
   const subColor = tone === "light" ? "text-white/80" : "text-ink-600";
+  const nameSize = size === "compact" ? "text-[15px]" : "text-lg";
+  const lineSize = size === "compact" ? "text-[10px]" : "text-[11.5px]";
+  const position = invoice.settings.logoPosition ?? "left";
+
+  const line = (
+    f: { key: BizKey; placeholder: string; label: string; prefix?: string },
+  ) => {
+    const value = b[f.key] ?? "";
+    if (!value && !edit) return null;
+    return (
+      <p key={f.key}>
+        {value && f.prefix}
+        <Editable
+          edit={edit}
+          value={value}
+          placeholder={f.placeholder}
+          ariaLabel={f.label}
+          onCommit={(v) => setBiz(f.key, v)}
+        />
+      </p>
+    );
+  };
+
+  // Empty parts stay rendered while editing so they remain clickable; with no
+  // editor they collapse away and only the filled parts print.
+  const region = BUSINESS_REGION.filter((f) => b[f.key] || edit);
+
   return (
-    <div className="flex items-start gap-3">
+    <div className={`flex gap-3 ${LOGO_LAYOUT[position] ?? LOGO_LAYOUT.left}`}>
       {b.logo && (
         // eslint-disable-next-line @next/next/no-img-element -- user-uploaded data URL, next/image cannot optimize this
         <img
@@ -143,8 +213,8 @@ export function BusinessIdentity({ invoice, edit, tone = "dark" }: DocProps & { 
           className="max-h-20 shrink-0 object-contain"
         />
       )}
-      <div>
-        <p className={`text-lg font-bold leading-tight ${textColor}`}>
+      <div className="min-w-0">
+        <p className={`${nameSize} font-bold leading-tight ${textColor}`}>
           <Editable
             edit={edit}
             value={b.name}
@@ -153,48 +223,25 @@ export function BusinessIdentity({ invoice, edit, tone = "dark" }: DocProps & { 
             onCommit={(v) => setBiz("name", v)}
           />
         </p>
-        <div className={`mt-0.5 text-[11.5px] leading-snug ${subColor}`}>
-          {(b.addressLine1 || edit) && (
+        <div className={`mt-0.5 ${lineSize} leading-snug ${subColor}`}>
+          {BUSINESS_LINES.map(line)}
+          {region.length > 0 && (
             <p>
-              <Editable
-                edit={edit}
-                value={b.addressLine1 ?? ""}
-                placeholder="Street address"
-                ariaLabel="Business address line 1"
-                onCommit={(v) => setBiz("addressLine1", v)}
-              />
+              {region.map((f, i) => (
+                <span key={f.key}>
+                  {i > 0 && ", "}
+                  <Editable
+                    edit={edit}
+                    value={b[f.key] ?? ""}
+                    placeholder={f.placeholder}
+                    ariaLabel={f.label}
+                    onCommit={(v) => setBiz(f.key, v)}
+                  />
+                </span>
+              ))}
             </p>
           )}
-          {b.addressLine2 && <p>{b.addressLine2}</p>}
-          {(b.city || b.state || b.postalCode) && (
-            <p>{[b.city, b.state, b.postalCode].filter(Boolean).join(", ")}</p>
-          )}
-          {b.country && <p>{b.country}</p>}
-          {(b.email || edit) && (
-            <p>
-              <Editable
-                edit={edit}
-                value={b.email ?? ""}
-                placeholder="Email"
-                ariaLabel="Business email"
-                onCommit={(v) => setBiz("email", v)}
-              />
-            </p>
-          )}
-          {(b.phone || edit) && (
-            <p>
-              <Editable
-                edit={edit}
-                value={b.phone ?? ""}
-                placeholder="Phone"
-                ariaLabel="Business phone"
-                onCommit={(v) => setBiz("phone", v)}
-              />
-            </p>
-          )}
-          {b.website && <p>{b.website}</p>}
-          {b.gstin && <p>GSTIN: {b.gstin}</p>}
-          {b.taxId && <p>Tax ID: {b.taxId}</p>}
+          {BUSINESS_TAIL.map(line)}
         </div>
       </div>
     </div>
@@ -292,17 +339,42 @@ export function InvoiceMetaBlock({
   );
 }
 
-export function PartiesBlock({ invoice, edit }: DocProps) {
+type CustomerKey = Exclude<keyof Invoice["customer"], "shipToDifferentAddress">;
+
+/**
+ * Customer lines under the name. Every one is editable — previously phone,
+ * GSTIN and Tax ID rendered as plain text, so those three could be typed into
+ * the side form but never corrected on the document itself.
+ */
+const CUSTOMER_LINES: { key: CustomerKey; placeholder: string; label: string; prefix?: string }[] = [
+  { key: "company", placeholder: "Company", label: "Customer company" },
+  { key: "email", placeholder: "Email", label: "Customer email" },
+  { key: "phone", placeholder: "Phone", label: "Customer phone" },
+  { key: "gstin", placeholder: "GSTIN", label: "Customer GSTIN", prefix: "GSTIN: " },
+  { key: "taxId", placeholder: "Tax ID", label: "Customer tax ID", prefix: "Tax ID: " },
+];
+
+export function PartiesBlock({ invoice, edit, size = "default" }: DocProps & { size?: "default" | "compact" }) {
   const c = invoice.customer;
-  const setCustomer = (key: keyof Invoice["customer"], next: string) =>
+  const setCustomer = (key: CustomerKey, next: string) =>
     edit?.patch((inv) => ({ ...inv, customer: { ...inv.customer, [key]: next } }));
+  const lineSize = size === "compact" ? "text-[10px]" : "text-[11.5px]";
+  const nameSize = size === "compact" ? "text-[12px]" : "text-[13px]";
+
+  // The ship-to column is gated on the settings toggle, but while editing it
+  // stays visible with an empty address so the field remains reachable.
+  const showShipTo =
+    invoice.settings.showShipping &&
+    Boolean(c.shipToDifferentAddress) &&
+    (Boolean(c.shippingAddress) || Boolean(edit));
+
   return (
     <div className="grid grid-cols-2 gap-6">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
           <EditableLabel edit={edit} invoice={invoice} labelKey="billTo" />
         </p>
-        <p className="mt-1 text-[13px] font-semibold text-ink-900">
+        <p className={`mt-1 ${nameSize} font-semibold text-ink-900`}>
           <Editable
             edit={edit}
             value={c.name}
@@ -311,18 +383,7 @@ export function PartiesBlock({ invoice, edit }: DocProps) {
             onCommit={(v) => setCustomer("name", v)}
           />
         </p>
-        <div className="mt-0.5 text-[11.5px] leading-snug text-ink-600">
-          {(c.company || edit) && (
-            <p>
-              <Editable
-                edit={edit}
-                value={c.company ?? ""}
-                placeholder="Company"
-                ariaLabel="Customer company"
-                onCommit={(v) => setCustomer("company", v)}
-              />
-            </p>
-          )}
+        <div className={`mt-0.5 ${lineSize} leading-snug text-ink-600`}>
           {(c.billingAddress || edit) && (
             <div className="whitespace-pre-line">
               <Editable
@@ -335,28 +396,30 @@ export function PartiesBlock({ invoice, edit }: DocProps) {
               />
             </div>
           )}
-          {(c.email || edit) && (
-            <p>
-              <Editable
-                edit={edit}
-                value={c.email ?? ""}
-                placeholder="Email"
-                ariaLabel="Customer email"
-                onCommit={(v) => setCustomer("email", v)}
-              />
-            </p>
-          )}
-          {c.phone && <p>{c.phone}</p>}
-          {c.gstin && <p>GSTIN: {c.gstin}</p>}
-          {c.taxId && <p>Tax ID: {c.taxId}</p>}
+          {CUSTOMER_LINES.map((f) => {
+            const value = c[f.key] ?? "";
+            if (!value && !edit) return null;
+            return (
+              <p key={f.key}>
+                {value && f.prefix}
+                <Editable
+                  edit={edit}
+                  value={value}
+                  placeholder={f.placeholder}
+                  ariaLabel={f.label}
+                  onCommit={(v) => setCustomer(f.key, v)}
+                />
+              </p>
+            );
+          })}
         </div>
       </div>
-      {invoice.settings.showShipping && c.shipToDifferentAddress && c.shippingAddress && (
+      {showShipTo && (
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
             <EditableLabel edit={edit} invoice={invoice} labelKey="shipTo" />
           </p>
-          <div className="mt-1 whitespace-pre-line text-[11.5px] leading-snug text-ink-600">
+          <div className={`mt-1 whitespace-pre-line ${lineSize} leading-snug text-ink-600`}>
             <Editable
               edit={edit}
               value={c.shippingAddress ?? ""}
@@ -621,34 +684,47 @@ export function ItemsTable({ invoice, totals, edit }: DocProps) {
 
 export function TotalsBlock({ invoice, totals, edit }: DocProps) {
   const L = (key: LabelKey) => labelFor(invoice, key);
-  const rows: [string, string, boolean?][] = [
-    [L("subtotal"), money(invoice, totals.subtotal)],
+  /**
+   * Rows carry their `labelKey` rather than a resolved string, so the fixed
+   * rows stay renameable in place like every other printed label. Rows named by
+   * the data itself — a tax or a charge — have no key and print as plain text,
+   * since renaming them belongs in the Tax/Charges panel where the name lives.
+   */
+  const rows: { key: LabelKey | null; label: string; value: string }[] = [
+    { key: "subtotal", label: L("subtotal"), value: money(invoice, totals.subtotal) },
   ];
-  if (totals.itemDiscountTotal) rows.push([L("itemDiscounts"), `-${money(invoice, totals.itemDiscountTotal)}`]);
-  if (totals.invoiceDiscountTotal) rows.push([L("discount"), `-${money(invoice, totals.invoiceDiscountTotal)}`]);
+  if (totals.itemDiscountTotal)
+    rows.push({ key: "itemDiscounts", label: L("itemDiscounts"), value: `-${money(invoice, totals.itemDiscountTotal)}` });
+  if (totals.invoiceDiscountTotal)
+    rows.push({ key: "discount", label: L("discount"), value: `-${money(invoice, totals.invoiceDiscountTotal)}` });
   if (invoice.settings.showTaxSummary) {
     for (const t of totals.taxSummary) {
-      rows.push([`${t.name}${t.rate ? ` (${t.rate}%)` : ""}`, money(invoice, t.amount)]);
+      rows.push({ key: null, label: `${t.name}${t.rate ? ` (${t.rate}%)` : ""}`, value: money(invoice, t.amount) });
     }
   } else if (totals.taxTotal) {
-    rows.push([L("tax"), money(invoice, totals.taxTotal)]);
+    rows.push({ key: "tax", label: L("tax"), value: money(invoice, totals.taxTotal) });
   }
   if (totals.chargeTotal) {
     for (const charge of invoice.charges) {
-      rows.push([charge.label || "Charge", money(invoice, charge.value)]);
+      rows.push({ key: null, label: charge.label || "Charge", value: money(invoice, charge.value) });
     }
   }
-  if (totals.rounding) rows.push([L("rounding"), money(invoice, totals.rounding)]);
+  if (totals.rounding)
+    rows.push({ key: "rounding", label: L("rounding"), value: money(invoice, totals.rounding) });
 
   return (
-    <div className="ml-auto w-full max-w-xs">
+    <div className="ml-auto w-full max-w-xs" data-print-avoid-break>
       <dl className="space-y-1.5 text-[12px]">
-        {rows.map(([label, value], i) => (
-          <div key={`${label}-${i}`} className="flex justify-between text-ink-600">
-            {/* Only the fixed rows carry a renameable label; per-tax rows are
-                named by the tax itself, which is edited in the Tax panel. */}
-            <dt>{label}</dt>
-            <dd className="text-ink-800">{value}</dd>
+        {rows.map((row, i) => (
+          <div key={`${row.label}-${i}`} className="flex justify-between text-ink-600">
+            <dt>
+              {row.key ? (
+                <EditableLabel edit={edit} invoice={invoice} labelKey={row.key} />
+              ) : (
+                row.label
+              )}
+            </dt>
+            <dd className="text-ink-800">{row.value}</dd>
           </div>
         ))}
       </dl>
@@ -657,13 +733,14 @@ export function TotalsBlock({ invoice, totals, edit }: DocProps) {
         style={{ backgroundColor: "var(--doc-primary)" }}
       >
         <span>
-          <EditableLabel edit={edit} invoice={invoice} labelKey="total" />
+          <EditableLabel edit={edit} invoice={invoice} labelKey="total" tone="light" />
         </span>
         <span>{money(invoice, totals.total)}</span>
       </div>
       {totals.amountInWords && (
         <p className="mt-2 text-[10.5px] italic text-ink-500">
-          {L("amountInWords")}: {totals.amountInWords}
+          <EditableLabel edit={edit} invoice={invoice} labelKey="amountInWords" />:{" "}
+          {totals.amountInWords}
         </p>
       )}
     </div>
@@ -674,31 +751,72 @@ export function TotalsBlock({ invoice, totals, edit }: DocProps) {
 /* Footer: notes, terms, payment, signature, QR                               */
 /* -------------------------------------------------------------------------- */
 
+type PaymentKey = Exclude<keyof Invoice["payment"], "instructions">;
+
+/** Bank rows, with the prefix each one prints. */
+const BANK_LINES: { key: PaymentKey; prefix: string; label: string }[] = [
+  { key: "bankName", prefix: "Bank: ", label: "Bank name" },
+  { key: "accountName", prefix: "Account name: ", label: "Account name" },
+  { key: "accountNumber", prefix: "Account #: ", label: "Account number" },
+  { key: "ifsc", prefix: "IFSC: ", label: "IFSC code" },
+  { key: "swift", prefix: "SWIFT: ", label: "SWIFT code" },
+  { key: "iban", prefix: "IBAN: ", label: "IBAN" },
+  { key: "routingNumber", prefix: "Routing #: ", label: "Routing number" },
+];
+
+const PAY_LINES: { key: PaymentKey; prefix: string; label: string }[] = [
+  { key: "upiId", prefix: "UPI: ", label: "UPI ID" },
+  { key: "paymentLink", prefix: "Pay online: ", label: "Payment link" },
+];
+
 export function PaymentBlock({ invoice, edit }: DocProps) {
   const p = invoice.payment;
   if (!invoice.settings.showPaymentDetails) return null;
-  const hasBank = invoice.settings.showBankDetails && (p.bankName || p.accountNumber || p.iban || p.swift);
-  if (!hasBank && !p.upiId && !p.paymentLink && !p.instructions) return null;
+  const hasBank = invoice.settings.showBankDetails && BANK_LINES.some((f) => p[f.key]);
+  // Nothing filled in and nothing to fill it with: stay off the document.
+  // While editing the block is kept so the fields are reachable in place.
+  if (!edit && !hasBank && !p.upiId && !p.paymentLink && !p.instructions) return null;
+
+  const setPay = (key: PaymentKey | "instructions", next: string) =>
+    edit?.patch((inv) => ({ ...inv, payment: { ...inv.payment, [key]: next } }));
+
+  const line = (f: { key: PaymentKey; prefix: string; label: string }) => {
+    const value = p[f.key] ?? "";
+    if (!value && !edit) return null;
+    return (
+      <p key={f.key}>
+        {value && f.prefix}
+        <Editable
+          edit={edit}
+          value={value}
+          placeholder={f.label}
+          ariaLabel={f.label}
+          onCommit={(v) => setPay(f.key, v)}
+        />
+      </p>
+    );
+  };
+
   return (
     <div className="text-[11px] text-ink-600">
       <p className="font-semibold uppercase tracking-wide text-ink-500">
         <EditableLabel edit={edit} invoice={invoice} labelKey="paymentDetails" />
       </p>
       <div className="mt-1 space-y-0.5">
-        {hasBank && (
-          <>
-            {p.bankName && <p>Bank: {p.bankName}</p>}
-            {p.accountName && <p>Account name: {p.accountName}</p>}
-            {p.accountNumber && <p>Account #: {p.accountNumber}</p>}
-            {p.ifsc && <p>IFSC: {p.ifsc}</p>}
-            {p.swift && <p>SWIFT: {p.swift}</p>}
-            {p.iban && <p>IBAN: {p.iban}</p>}
-            {p.routingNumber && <p>Routing #: {p.routingNumber}</p>}
-          </>
+        {(hasBank || edit) && invoice.settings.showBankDetails && BANK_LINES.map(line)}
+        {PAY_LINES.map(line)}
+        {(p.instructions || edit) && (
+          <div className="whitespace-pre-line">
+            <Editable
+              edit={edit}
+              value={p.instructions ?? ""}
+              placeholder="Payment instructions"
+              ariaLabel="Payment instructions"
+              multiline
+              onCommit={(v) => setPay("instructions", v)}
+            />
+          </div>
         )}
-        {p.upiId && <p>UPI: {p.upiId}</p>}
-        {p.paymentLink && <p>Pay online: {p.paymentLink}</p>}
-        {p.instructions && <p className="whitespace-pre-line">{p.instructions}</p>}
       </div>
     </div>
   );
@@ -797,33 +915,77 @@ export function NotesTermsBlock({ invoice, edit }: DocProps) {
   );
 }
 
-export function SignatureBlock({ invoice }: DocProps) {
+export function SignatureBlock({ invoice, edit }: DocProps) {
   if (!invoice.settings.showSignature) return null;
   const s = invoice.signature;
   const justify = s.align === "center" ? "items-center" : s.align === "left" ? "items-start" : "items-end";
+  const setSig = (key: "name" | "label", next: string) =>
+    edit?.patch((inv) => ({ ...inv, signature: { ...inv.signature, [key]: next } }));
   return (
-    <div className={`flex flex-col ${justify}`}>
+    <div className={`flex flex-col ${justify}`} data-print-avoid-break>
       {s.src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={s.src} alt="Signature" style={{ width: s.width, height: "auto" }} />
       ) : (
         <div className="h-12 w-40 border-b border-ink-300" />
       )}
-      <p className="mt-1 text-[11px] font-medium text-ink-800">{s.name}</p>
-      <p className="text-[10px] text-ink-500">{s.label || labelFor(invoice, "authorizedSignature")}</p>
+      <p className="mt-1 text-[11px] font-medium text-ink-800">
+        <Editable
+          edit={edit}
+          value={s.name ?? ""}
+          placeholder="Signatory name"
+          ariaLabel="Signatory name"
+          onCommit={(v) => setSig("name", v)}
+        />
+      </p>
+      <p className="text-[10px] text-ink-500">
+        <Editable
+          edit={edit}
+          value={s.label ?? ""}
+          display={s.label || labelFor(invoice, "authorizedSignature")}
+          placeholder={labelFor(invoice, "authorizedSignature")}
+          ariaLabel="Signature label"
+          onCommit={(v) => setSig("label", v)}
+        />
+      </p>
     </div>
   );
 }
 
-export function CustomFieldsBlock({ invoice, section }: DocProps & { section: string }) {
+export function CustomFieldsBlock({ invoice, edit, section }: DocProps & { section: string }) {
   const fields = invoice.customFields.filter((f) => f.visible && f.section === section);
   if (!fields.length) return null;
+  // Both halves are editable: a custom field is user-named by definition, so
+  // reading its label as fixed text was the one case where renaming in place
+  // was impossible.
+  const setField = (id: string, key: "label" | "value", next: string) =>
+    edit?.patch((inv) => ({
+      ...inv,
+      customFields: inv.customFields.map((f) => (f.id === id ? { ...f, [key]: next } : f)),
+    }));
   return (
     <dl className="space-y-0.5 text-[11px] text-ink-600">
       {fields.map((f) => (
         <div key={f.id} className="flex gap-2">
-          <dt className="font-medium text-ink-500">{f.label}:</dt>
-          <dd>{f.value}</dd>
+          <dt className="font-medium text-ink-500">
+            <Editable
+              edit={edit}
+              value={f.label}
+              placeholder="Field name"
+              ariaLabel={`Custom field name: ${f.label}`}
+              onCommit={(v) => setField(f.id, "label", v)}
+            />
+            :
+          </dt>
+          <dd>
+            <Editable
+              edit={edit}
+              value={f.value}
+              placeholder="Value"
+              ariaLabel={f.label || "Custom field value"}
+              onCommit={(v) => setField(f.id, "value", v)}
+            />
+          </dd>
         </div>
       ))}
     </dl>

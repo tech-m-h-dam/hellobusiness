@@ -75,6 +75,29 @@ export function InvoicePreview({ editable = true }: { editable?: boolean }) {
     [inlineEditable, update],
   );
 
+  /**
+   * The copy that actually goes on paper.
+   *
+   * Printing the interactive document meant printing its editing affordances:
+   * every empty field renders its placeholder so it stays clickable, so an
+   * invoice with no PO number printed the words "PO #: —", and a half-filled
+   * address printed "Street address" / "City, State, Postal code". A field left
+   * open when the dialog was invoked printed as a focused text input.
+   *
+   * Rendering the document a second time without `edit` sidesteps all of it:
+   * what prints is byte-for-byte the document the static example pages and the
+   * PDF render. It is memoised on the data alone, so zooming or resizing the
+   * preview column does not re-render it.
+   */
+  const printable = useMemo(
+    () => (
+      <div className="hidden print:block">
+        <InvoiceDocument invoice={invoice} totals={totals} />
+      </div>
+    ),
+    [invoice, totals],
+  );
+
   const landscape = invoice.settings.orientation === "landscape";
   const pageWidthPx = landscape
     ? invoice.settings.pageSize === "A4"
@@ -154,14 +177,21 @@ export function InvoicePreview({ editable = true }: { editable?: boolean }) {
         ref={sheetRef}
         data-print="sheet"
         style={{ height: height || undefined }}
-        className={`rounded-lg shadow-lg ring-1 ring-ink-200 ${
+        className={`rounded-lg shadow-lg ring-1 ring-ink-200 print:hidden ${
           // Zoomed in, the sheet is wider than its column, so it scrolls
           // horizontally instead of being cut off.
           zoom > 1 ? "overflow-auto" : "overflow-hidden"
         }`}
       >
-        <InvoiceDocument invoice={invoice} totals={totals} scale={scale} edit={edit} />
+        <InvoiceDocument
+          invoice={invoice}
+          totals={totals}
+          scale={scale}
+          edit={edit}
+          printTarget={false}
+        />
       </div>
+      {printable}
     </div>
   );
 }

@@ -16,6 +16,7 @@ export const businessDetailsSchema = z.object({
   name: z.string().max(200).default(""),
   logo: z.string().optional(),
   logoWidth: z.number().min(20).max(400).optional(),
+  logoAspect: z.number().positive().finite().optional(),
   addressLine1: optionalText(),
   addressLine2: optionalText(),
   city: optionalText(120),

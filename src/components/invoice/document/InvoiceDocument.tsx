@@ -8,6 +8,8 @@
  *
  * `data-print="area"` marks this subtree as the print target: globals.css
  * strips app chrome and lets this element flow across pages when printing.
+ * Exactly one element on a page may carry it — the live editor renders the
+ * document twice and points it at the read-only copy (see InvoicePreview).
  */
 import { getTemplate } from "@/lib/invoice/templates";
 import type { ComputedTotals, Invoice } from "@/lib/invoice/types";
@@ -28,6 +30,13 @@ export function InvoiceDocument({
   scale = 1,
   className,
   edit,
+  /**
+   * Whether this copy is the one that goes on paper. The editor's interactive
+   * copy sets it false so the browser prints its read-only twin instead — an
+   * editable document prints its editing affordances, which is how placeholder
+   * text for empty fields ("Street address", "PO #") ended up on the page.
+   */
+  printTarget = true,
 }: {
   invoice: Invoice;
   totals: ComputedTotals;
@@ -35,6 +44,7 @@ export function InvoiceDocument({
   className?: string;
   /** Passed only by the live editor; absent everywhere else (see inline-edit.ts). */
   edit?: InlineEdit;
+  printTarget?: boolean;
 }) {
   const template = getTemplate(invoice.templateId);
   const Layout = LAYOUTS[template.layout] ?? LAYOUTS.classic;
@@ -47,7 +57,7 @@ export function InvoiceDocument({
 
   return (
     <div
-      data-print="area"
+      data-print={printTarget ? "area" : "preview"}
       className={className}
       style={{
         // CSS custom properties consumed by the shared parts, so a template's

@@ -16,6 +16,12 @@ export type BusinessDetails = {
   /** Data URL. Stays in the browser for anonymous users. */
   logo?: string;
   logoWidth?: number;
+  /**
+   * Intrinsic width/height of the uploaded logo, captured at upload. The HTML
+   * and PDF paths get the ratio for free from `height: auto`; the Word export
+   * has to state both dimensions, and without this it had to guess one.
+   */
+  logoAspect?: number;
   addressLine1?: string;
   addressLine2?: string;
   city?: string;
